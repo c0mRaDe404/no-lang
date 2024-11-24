@@ -1,0 +1,20 @@
+stmt        -> exp
+exp         -> term exp_prime
+
+exp_prime   -> + term exp_prime 
+            | - term exp_prime 
+            | epsilon
+
+term        -> factor term_prime
+
+term_prime  -> * factor term_prime
+            | / factor term_prime
+            | epsilon
+
+factor      -> NUM
+            | ( exp )
+
+
+
+exp_prime - nullable
+term_prime - nullable
