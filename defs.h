@@ -15,7 +15,7 @@ typedef enum {
 
 
 typedef enum{
-    ADD,
+    ADD=1,
     SUB,
     MUL,
     DIV,
@@ -64,6 +64,6 @@ void    *term();
 void    *term_prime();
 void    *factor();
 void    *epsilon();
-int     eval_ast(AST_NODE*);
+long double     eval_ast(AST_NODE*);
 
 #endif

@@ -19,7 +19,7 @@ AST_NODE *mk_num_node(AST_TYPE type,int num){
     return new_node;
 }
 
-int eval_ast(AST_NODE *root){
+long double eval_ast(AST_NODE *root){
     
     AST_NODE *head = root;
     int type;

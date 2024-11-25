@@ -47,6 +47,8 @@ void *exp_prime(){
         if(node2 == NULL){
             return mk_binary_node(((type == PLUS) ? ADD:SUB),NULL,node1);
         }else{
+
+            node2->node.Binary.left = node1;
             node2 = mk_binary_node(((type == PLUS) ? ADD:SUB),node1,node2);
             return node2;
         }
@@ -91,6 +93,7 @@ void *term_prime(){
         if(node2 == NULL){
             return mk_binary_node(((type == DIVIDE) ? DIV:MUL),NULL,node1);
         }else{
+            node2->node.Binary.left = node1;
             node2 = mk_binary_node(((type == DIVIDE) ? DIV:MUL),node1,node2);
             return node2;
         }
