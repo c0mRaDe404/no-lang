@@ -14,5 +14,5 @@
 "*"         {return MULTIPLY;}
 ")"         {return R_PAREN;}
 "("         {return L_PAREN;}
-\n          { ; }
+[ \n\t]          { ; }
 %%

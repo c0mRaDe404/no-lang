@@ -119,6 +119,7 @@ void *term_prime(){
 void *factor(){
     //RULE(FACTOR,"factor");
     int num;
+    AST_NODE *node;
     switch(cur_token){
         case NUM:
             //RULE(NUMBER,yytext);
@@ -128,10 +129,10 @@ void *factor(){
         case L_PAREN:
             //RULE(L_PAREN,yytext);
             match(L_PAREN);
-            expression();
+            node = expression();
             //RULE(R_PAREN,yytext);
             match(R_PAREN);
-            return NULL;
+            return node;
         default:
             printf("Syntax error at line %d\n",yylineno);
             exit(ERROR);
