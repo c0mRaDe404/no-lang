@@ -11,7 +11,7 @@ AST_NODE *mk_binary_node(AST_TYPE type,AST_NODE *left,AST_NODE *right){
     return new_node;
 }
 
-AST_NODE *mk_num_node(AST_TYPE type,int num){
+AST_NODE *mk_num_node(AST_TYPE type,long double num){
 
     AST_NODE *new_node = malloc(sizeof(AST_NODE));
     new_node->ast_type = NO;

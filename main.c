@@ -9,7 +9,7 @@ void match(TOKEN_TYPE token) {
     if(token == cur_token) {
         cur_token = yylex();
     }else{
-        printf("Syntax error in line %d\n",yylineno);
+        printf("Syntax error in line %d near %s\n",yylineno,yytext);
         exit(ERROR);
     }
 }
@@ -61,7 +61,7 @@ void *exp_prime(){
             case R_PAREN :
                 return epsilon();
             default:
-                printf("Syntax error at line %d\n",yylineno);
+                printf("Syntax error at line %d near %s\n",yylineno,yytext);
                 exit(ERROR);
         }    }
 
@@ -108,7 +108,7 @@ void *term_prime(){
             case R_PAREN:
                 return epsilon();
             default:
-                printf("Syntax error at line %d\n",yylineno);
+                printf("Syntax error at line %d near %s\n",yylineno,yytext);
                 exit(ERROR);
         }
     }
@@ -118,12 +118,12 @@ void *term_prime(){
 
 void *factor(){
     //RULE(FACTOR,"factor");
-    int num;
+    long double num;
     AST_NODE *node;
     switch(cur_token){
         case NUM:
             //RULE(NUMBER,yytext);
-            num = atoi(yytext);
+            num = atof(yytext);
             match(NUM);
             return mk_num_node(NO,num); 
         case L_PAREN:
@@ -134,8 +134,9 @@ void *factor(){
             match(R_PAREN);
             return node;
         default:
-            printf("Syntax error at line %d\n",yylineno);
-            exit(ERROR);
+               printf("Syntax error at line %d\n near %s\n",yylineno,yytext);
+                exit(ERROR);
+            
     }
     return NULL;
 }
@@ -150,8 +151,9 @@ int main(int argc,char **argv){
     FILE *file;
 
     if(argc < 2) {
-        printf("usage : calc <file> ");
-        return 1;
+        //printf("usage : calc <file> ");
+        
+        //return 1;
     }else {
         file = fopen(argv[1],"r");
         yyin = file;
@@ -159,6 +161,6 @@ int main(int argc,char **argv){
     cur_token = yylex();    
     AST_NODE *root = statement();
     long double value = eval_ast(root);
-    printf("%Lf\n",value);
+    printf("%0.15Lf\n",value);
     return 0;
 }

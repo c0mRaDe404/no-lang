@@ -19,6 +19,7 @@ typedef enum{
     SUB,
     MUL,
     DIV,
+    U_MIN,
     NO
 }AST_TYPE;
 
@@ -33,15 +34,20 @@ typedef struct AST_NODE{
         }Binary;
 
         struct{
-            int num;
+            long double num;
         }Unary;
+
+        struct{
+            AST_TYPE sign;
+            struct AST_NODE *val;
+        }Signed;
 
     }node;
 }AST_NODE;
 
 
 AST_NODE *mk_binary_node(AST_TYPE type,AST_NODE *left,AST_NODE *right);
-AST_NODE *mk_num_node(AST_TYPE type,int num);
+AST_NODE *mk_num_node(AST_TYPE type,long double num);
 
 
 #define RULE(x,y) printf("%s : %s\n",#x,y);

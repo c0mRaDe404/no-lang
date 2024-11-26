@@ -11,8 +11,10 @@ term_prime  -> * factor term_prime
             | / factor term_prime
             | epsilon
 
-factor      -> NUM
+unary       -> (-|+) factor
+factor      -> NUM 
             | ( exp )
+            | unary
 
 
 

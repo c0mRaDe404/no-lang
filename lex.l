@@ -7,7 +7,7 @@
 
 %%
 
-[0-9]+      {return NUM;}
+[0-9]+("."[0-9]+)?      {return NUM;}
 "+"         {return PLUS;}
 "-"         {return MINUS;}
 "/"         {return DIVIDE;}
