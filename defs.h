@@ -19,12 +19,14 @@ typedef enum {
 
 
 typedef enum{
-    ADD=1,
+    STMT=1,
+    ADD,
     SUB,
     MUL,
     DIV,
     U_PLUS,
     U_MIN,
+    ASSIGN,
     NO
 }AST_TYPE;
 
@@ -39,6 +41,7 @@ typedef struct AST_NODE{
         }Binary;
 
         struct{
+            long double *ref;
             long double num;
         }Unary;
 
@@ -48,18 +51,26 @@ typedef struct AST_NODE{
 
         struct{
             char *id_name;
-        }Id;
+            struct AST_NODE *value;
+        }Assign;
 
+        struct Program{
+            struct AST_NODE *node;
+            struct Program  *stmt;
+        }Stmt;
     }node;
 }AST_NODE;
 
 /*-----------------------------*/
 
-#define SYM_TABLE_S 5
+#define SYM_TABLE_S 50
 
-typedef struct {
+typedef struct SYM_TABLE{
     char *id_name;
-    AST_NODE *val;
+    long double value;
+    long double *ref;
+    AST_NODE *value_ptr;
+    struct SYM_TABLE *next;
 }SYM_TABLE;
 
 typedef struct{
@@ -67,12 +78,23 @@ typedef struct{
     size_t counter;
 }S_TABLE;
 
+
+S_TABLE *sym_create();
+size_t hash(char*,size_t);
+void sym_entry(S_TABLE*,char*,long double);
+
+SYM_TABLE *sym_fetch(S_TABLE*,char*);
+
+int sym_check(S_TABLE *,char *);
+
 /*------------------------------*/
 
 AST_NODE *mk_binary_node(AST_TYPE type,AST_NODE *left,AST_NODE *right);
 AST_NODE *mk_num_node(AST_TYPE type,long double num);
 
 AST_NODE *mk_unary_node(AST_TYPE type,AST_NODE *factor);
+
+AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr);
 
 #define RULE(x,y) printf("%s : %s\n",#x,y);
 #define ERROR 100
@@ -95,6 +117,8 @@ void    *term();
 void    *term_prime();
 void    *factor();
 void    *epsilon();
+void    *program();
+void    *declaration();
 long double     eval_ast(AST_NODE*);
 
 #endif

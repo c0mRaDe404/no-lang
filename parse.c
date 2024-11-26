@@ -1,23 +1,38 @@
 #include <stdio.h>
 #include "defs.h"
 #include <stdlib.h>
-
+#include <string.h>
 
 #define DEBUG
+#undef DEBUG
+
+extern S_TABLE *sym_tab;
+extern SYM_TABLE *sym_fetch(S_TABLE*,char*);
 extern TOKEN_TYPE cur_token;
-
-
-
+extern int yyleng;
+extern int line;
+extern char *prev_token;
 
 void match(TOKEN_TYPE token) {
-
+    
     if(token == cur_token) {
+        prev_token = strndup(yytext,yyleng);
         cur_token = yylex();
     }else{
-        printf("Syntax error in line %d near %s\n",yylineno,yytext);
+        printf("Syntax error in line %d near %s\n",line,prev_token);
         exit(ERROR);
     }
 }
+
+
+void *program(){
+    AST_NODE *node1,*node2;
+    if(cur_token == EOS) return NULL;
+    node1 = statement();
+    node2 = program();
+    return mk_binary_node(STMT,node1,node2);
+}
+
 
 void *statement(){
     
@@ -25,14 +40,17 @@ void *statement(){
     RULE(STATEMENT,"stmt");
     #endif
 
-    //AST_NODE *node;
+    AST_NODE *node;
 
     switch(cur_token){
         case LET:
-            match(LET);
-            return assignment();
+            node = declaration();
+            match(SEMI_COLON);
+            return node;
         default:
-            return expression();
+            node = expression();
+            match(SEMI_COLON);
+            return node;
     }
 
     //node = expression();
@@ -40,18 +58,34 @@ void *statement(){
     //return node;
 }
 
-void *assignment(){
-    
-    char *id = yytext;
-    AST_NODE *node1;
+
+void *declaration(){
+
+    match(LET);
+    AST_NODE *node;
+    char *id = strndup(yytext,yyleng);
+    sym_entry(sym_tab,id,0);
     #ifdef DEBUG
     RULE(ASSIGN,"assign");
+    RULE(ID,yytext);
     #endif
-
     match(ID);
     match(EQ);
-    node1 = expression();
-    return node1;
+    return mk_assign_node(ASSIGN,id,expression());
+}
+
+
+void *assignment(){
+    
+    AST_NODE *node;
+    char *id = strndup(yytext,yyleng);
+    #ifdef DEBUG
+    RULE(ASSIGN,"assign");
+    RULE(ID,yytext);
+    #endif
+    match(ID);
+    match(EQ);
+    return mk_assign_node(ASSIGN,id,expression());
 }
 
 
@@ -104,7 +138,7 @@ void *exp_prime(){
             case R_PAREN :
                 return epsilon();
             default:
-                printf("Syntax error at line %d near %s\n",yylineno,yytext);
+                printf("Syntax error at line %d near %s\n",line,prev_token);
                 exit(ERROR);
         }    }
 
@@ -158,7 +192,7 @@ void *term_prime(){
             case R_PAREN:
                 return epsilon();
             default:
-                printf("Syntax error at line %d near %s\n",yylineno,yytext);
+                printf("Syntax error at line %d near %s\n",line,prev_token);
                 exit(ERROR);
         }
     }
@@ -174,6 +208,7 @@ void *factor(){
     long double num;
     AST_NODE *node;
     TOKEN_TYPE type;
+    SYM_TABLE *table;
     switch(cur_token){
         case NUM:
 
@@ -204,9 +239,15 @@ void *factor(){
             match(type);
             node = factor();
             return mk_unary_node((type == PLUS)? U_PLUS:U_MIN,node);
+        case ID:
+            match(ID);   //need to make num node;
+            table = sym_fetch(sym_tab,prev_token);
+            node = mk_num_node(NO,table->value);
+            node->node.Unary.ref = &table->value; 
+            return node;
         default:
-               printf("Syntax error at line %d\n near %s\n",yylineno,yytext);
-                exit(ERROR);
+            printf("Syntax error at line %d\n near %s\n",line,prev_token);
+            exit(ERROR);
             
     }
     return NULL;

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "defs.h"
 
+int line = 1;
+
 %}
 
 
@@ -18,7 +20,8 @@
 ")"                     {return R_PAREN;}
 "("                     {return L_PAREN;}
 "="                     {return EQ;     }
-[ \n\t]                 {       ;       }
+[ \t]                 {       ;       }
+\n                    {     line++;  }
 ";"                     {return SEMI_COLON;}
 
 %%
