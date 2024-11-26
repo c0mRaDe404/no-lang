@@ -1,20 +1,41 @@
-stmt        -> exp
+
+           stmt
+        /        \
+      assign      ;
+       (=)
+    /       \
+   ID        exp
+
+
+----- not added yet -----
+program     -> stmts
+
+stmts       -> stmt stmts
+
+--------------------------
+
+stmt        -> exp ";"
+            | assign ";"
+
+assign      -> "let" ID "=" exp
+
 exp         -> term exp_prime
 
-exp_prime   -> + term exp_prime 
-            | - term exp_prime 
-            | epsilon
+exp_prime   -> "+" term exp_prime 
+            |  "-" term exp_prime 
+            |  epsilon
 
 term        -> factor term_prime
 
-term_prime  -> * factor term_prime
-            | / factor term_prime
-            | epsilon
+term_prime  -> "*" factor term_prime
+            |  "/" factor term_prime
+            |  epsilon
 
-unary       -> (-|+) factor
-factor      -> NUM 
-            | ( exp )
-            | unary
+unary       -> ( "-" | "+" ) factor
+
+factor      -> NUM              //token
+            |  "(" exp ")"
+            |  unary
 
 
 

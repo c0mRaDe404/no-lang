@@ -10,7 +10,11 @@ typedef enum {
     MULTIPLY,
     DIVIDE,
     L_PAREN,
-    R_PAREN
+    R_PAREN,
+    EQ,
+    SEMI_COLON,
+    ID,
+    LET
 }TOKEN_TYPE;
 
 
@@ -19,6 +23,7 @@ typedef enum{
     SUB,
     MUL,
     DIV,
+    U_PLUS,
     U_MIN,
     NO
 }AST_TYPE;
@@ -38,17 +43,36 @@ typedef struct AST_NODE{
         }Unary;
 
         struct{
-            AST_TYPE sign;
-            struct AST_NODE *val;
+            struct AST_NODE *factor;
         }Signed;
+
+        struct{
+            char *id_name;
+        }Id;
 
     }node;
 }AST_NODE;
 
+/*-----------------------------*/
+
+#define SYM_TABLE_S 5
+
+typedef struct {
+    char *id_name;
+    AST_NODE *val;
+}SYM_TABLE;
+
+typedef struct{
+    SYM_TABLE **sym_table;
+    size_t counter;
+}S_TABLE;
+
+/*------------------------------*/
 
 AST_NODE *mk_binary_node(AST_TYPE type,AST_NODE *left,AST_NODE *right);
 AST_NODE *mk_num_node(AST_TYPE type,long double num);
 
+AST_NODE *mk_unary_node(AST_TYPE type,AST_NODE *factor);
 
 #define RULE(x,y) printf("%s : %s\n",#x,y);
 #define ERROR 100
@@ -64,6 +88,7 @@ extern int yylineno;
 
 void    match(TOKEN_TYPE); // match token and move lookahead to next token
 void    *statement();
+void    *assignment();
 void    *expression();
 void    *exp_prime();
 void    *term();
