@@ -4,8 +4,6 @@
 #include "defs.h"
 #define S_VIEW
 
-extern int line;
-
 
 S_TABLE *sym_create(){
     S_TABLE *table;
@@ -112,7 +110,6 @@ SYM_TABLE *sym_fetch(S_TABLE *s,char *id){
         }
 }
 
-#ifdef S_VIEW
 void sym_view(S_TABLE *s){
 
     for(int i = 0;i< SYM_TABLE_S;i++){
@@ -133,4 +130,3 @@ void sym_view(S_TABLE *s){
     }
 }
 
-#endif

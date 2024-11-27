@@ -6,12 +6,7 @@
 #define DEBUG
 #undef DEBUG
 
-extern S_TABLE *sym_tab;
-extern SYM_TABLE *sym_fetch(S_TABLE*,char*);
-extern TOKEN_TYPE cur_token;
-extern int yyleng;
-extern int line;
-extern char *prev_token;
+
 
 void match(TOKEN_TYPE token) {
     
@@ -47,6 +42,13 @@ void *statement(){
             node = declaration();
             match(SEMI_COLON);
             return node;
+        case PRINT:
+            match(PRINT);
+            match(L_PAREN);
+            node = expression();
+            match(R_PAREN);
+            match(SEMI_COLON);
+            return mk_print_node(PRNT,node);
         default:
             node = expression();
             match(SEMI_COLON);
@@ -245,6 +247,9 @@ void *factor(){
             node = mk_num_node(NO,table->value);
             node->node.Unary.ref = &table->value; 
             return node;
+        case STRING:
+            match(STRING);
+            break;
         default:
             printf("Syntax error at line %d\n near %s\n",line,prev_token);
             exit(ERROR);

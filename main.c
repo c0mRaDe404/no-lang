@@ -2,14 +2,14 @@
 #include "defs.h"
 #include <stdio.h>
 
-#define S_VIEW
+//#define S_VIEW
 
 TOKEN_TYPE cur_token;
 char *prev_token;
 S_TABLE *sym_tab;
 
-extern S_TABLE *sym_create();
-extern void sym_view(S_TABLE *);
+
+
 int main(int argc,char **argv){
     FILE *file;
     sym_tab = sym_create();
@@ -25,10 +25,14 @@ int main(int argc,char **argv){
     cur_token = yylex();    
     AST_NODE *root = program();
     long double value = eval_ast(root);
+    
+    #ifdef S_VIEW
     sym_view(sym_tab);
+    #endif
 
-    #ifndef S_VIEW
+    #ifdef DEBUG
     printf("%0.15Lf\n",value);
     #endif
+
     return 0;
 }

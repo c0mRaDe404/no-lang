@@ -3,9 +3,10 @@
 #include <stdlib.h>
 
 
+void print_value(long double value){       
+        fprintf(stdout,"%Lf\n",value);
+}
 
-extern void sym_entry(S_TABLE *table,char *id,long double value);
-extern S_TABLE *sym_tab;
 
 AST_NODE *mk_binary_node(AST_TYPE type,AST_NODE *left,AST_NODE *right){
 
@@ -41,10 +42,19 @@ AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr){
 }
 
 
+AST_NODE *mk_print_node(AST_TYPE type,AST_NODE *expr){
+    
+    AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->ast_type = type;
+    new_node->node.Print.expr = expr;
+    return new_node;
+}
+
 long double eval_ast(AST_NODE *root){
     
     AST_NODE *head = root;
-    int type,temp_value;
+    int type;
+    long double temp_value;
     long double left,right;
     AST_NODE *left_node,*right_node;
     left_node  = NULL;
@@ -81,6 +91,9 @@ long double eval_ast(AST_NODE *root){
         case ASSIGN:
             temp_value = eval_ast(head->node.Assign.value);
             sym_entry(sym_tab,head->node.Assign.id_name,temp_value);          
+            return temp_value;
+        case PRNT:
+            print_value(eval_ast(head->node.Print.expr));
             return temp_value;
         default:
             return 0;

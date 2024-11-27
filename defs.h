@@ -14,7 +14,14 @@ typedef enum {
     EQ,
     SEMI_COLON,
     ID,
-    LET
+    LET,
+    PRINT,
+    DEQ,
+    GT,
+    LT,
+    TRUE,
+    FALSE,
+    STRING
 }TOKEN_TYPE;
 
 
@@ -27,7 +34,9 @@ typedef enum{
     U_PLUS,
     U_MIN,
     ASSIGN,
-    NO
+    NO,
+    PRNT,
+    STR
 }AST_TYPE;
 
 
@@ -58,6 +67,17 @@ typedef struct AST_NODE{
             struct AST_NODE *node;
             struct Program  *stmt;
         }Stmt;
+
+        struct {
+            char *keyword;
+            struct AST_NODE *expr;
+        }Print;
+
+        struct {
+            char *string;
+            size_t len;
+        }Str;
+
     }node;
 }AST_NODE;
 
@@ -96,6 +116,8 @@ AST_NODE *mk_unary_node(AST_TYPE type,AST_NODE *factor);
 
 AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr);
 
+AST_NODE *mk_print_node(AST_TYPE type,AST_NODE *expr);
+
 #define RULE(x,y) printf("%s : %s\n",#x,y);
 #define ERROR 100
 #define SUCCESS 200
@@ -104,9 +126,19 @@ AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr);
 extern int yylex();
 extern char *yytext;
 extern FILE *yyin;
-
-
+extern S_TABLE *sym_tab;
+extern SYM_TABLE *sym_fetch(S_TABLE*,char*);
+extern TOKEN_TYPE cur_token;
+extern int yyleng;
+extern int line;
+extern char *prev_token;
 extern int yylineno;
+extern int line;
+extern void sym_entry(S_TABLE *table,char *id,long double value);
+extern S_TABLE *sym_tab;
+extern S_TABLE *sym_create();
+extern void sym_view(S_TABLE *);
+
 
 void    match(TOKEN_TYPE); // match token and move lookahead to next token
 void    *statement();
