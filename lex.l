@@ -14,6 +14,11 @@ int line = 1;
 "false"                     {return FALSE;}
 "print"                     {return PRINT;}
 
+"=="                        {return DOUBLE_EQ;}
+">"                         {return G_THAN;}
+"<"                         {return L_THAN;}
+
+
 
 
 ^(\"|\')(.+?)[^\"]+(\"|\')$ {return STRING;}
@@ -29,8 +34,4 @@ int line = 1;
 [ \t]                       {       ;       }
 \n                          {     line++;  }
 ";"                         {return SEMI_COLON;}
-"=="                        {return DEQ;}
-">"                         {return GT;}
-"<"                         {return LT;}
-
 %%

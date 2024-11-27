@@ -7,14 +7,14 @@ stmt            -> exp ";"
                 |  declaration ";"
                 | "print" "(" exp ")" ";"
 
-conditional     -> exp "==" exp | exp "<" | exp ">" exp 
+conditional     -> exp (("==" | "<" | ">" ) exp)? 
 
 declaraion      -> "let" ID "="  exp 
 
 //assign          -> ID "=" assign | exp 
 
 
-exp         -> term exp_prime
+exp         -> term exp_prime | exp 
 
 exp_prime   -> "+" term exp_prime 
             |  "-" term exp_prime 

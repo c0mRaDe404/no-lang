@@ -16,9 +16,9 @@ typedef enum {
     ID,
     LET,
     PRINT,
-    DEQ,
-    GT,
-    LT,
+    DOUBLE_EQ,
+    G_THAN,
+    L_THAN,
     TRUE,
     FALSE,
     STRING
@@ -36,7 +36,10 @@ typedef enum{
     ASSIGN,
     NO,
     PRNT,
-    STR
+    STR,
+    DEQ,
+    GT,
+    LT
 }AST_TYPE;
 
 

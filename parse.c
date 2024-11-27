@@ -6,6 +6,32 @@
 #define DEBUG
 #undef DEBUG
 
+#define RELATIONAL_OP(x) (x == DOUBLE_EQ || x == G_THAN || x == L_THAN)
+
+AST_TYPE token_to_ast(TOKEN_TYPE type){
+        switch(type){
+            case PLUS:
+                return ADD;
+             case MINUS:
+                return SUB;
+             case MULTIPLY:
+                return MUL;
+             case DIVIDE:
+                return DIV;
+             case DOUBLE_EQ:
+                return DEQ;
+             case G_THAN:
+                return GT;
+             case L_THAN:
+                return LT;
+             case PRINT:
+                return PRNT;
+             case EQ :
+                return ASSIGN;
+             default:
+                return 0;
+        }
+}
 
 
 void match(TOKEN_TYPE token) {
@@ -98,11 +124,26 @@ void *expression(){
 
     AST_NODE *node1 = term();
     AST_NODE *node2 = exp_prime();
+    TOKEN_TYPE type;
 
     if(node2 == NULL){
+
+        if(RELATIONAL_OP(cur_token)){
+                type = cur_token;
+                match(type);
+                return  mk_binary_node(token_to_ast(type),node1,expression());
+        }
+
         return node1;
     }else{
         node2->node.Binary.left = node1;
+
+        if(RELATIONAL_OP(cur_token)){
+            type = cur_token;
+            match(type);
+            return  mk_binary_node(token_to_ast(type),node2,expression());
+        }
+
         return node2;
     }
     return NULL;
@@ -138,6 +179,9 @@ void *exp_prime(){
             case EOS:
             case SEMI_COLON:
             case R_PAREN :
+            case DOUBLE_EQ:
+            case G_THAN:
+            case L_THAN:
                 return epsilon();
             default:
                 printf("Syntax error at line %d near %s\n",line,prev_token);
@@ -192,6 +236,9 @@ void *term_prime(){
             case EOS:
             case SEMI_COLON:
             case R_PAREN:
+            case DOUBLE_EQ:
+            case G_THAN:
+            case L_THAN: 
                 return epsilon();
             default:
                 printf("Syntax error at line %d near %s\n",line,prev_token);

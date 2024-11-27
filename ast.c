@@ -6,10 +6,10 @@
 #include <ctype.h>
 
 
-
-#define BINARY(head)  head->ast_type == ADD  || head->ast_type == MUL \
-                || head->ast_type == DIV || head ->ast_type==SUB \
-                || head->ast_type == STMT
+#define BINARY(head)   head->ast_type == ADD  || head->ast_type == MUL \
+                      || head->ast_type == DIV || head ->ast_type ==SUB \
+                      || head->ast_type == STMT || head->ast_type == DEQ \
+                      || head->ast_type == GT   || head->ast_type == LT
 
 #define UNARY(head)  head != NULL && head->ast_type == NO
 
@@ -123,6 +123,12 @@ long double eval_ast(AST_NODE *root){
             return -(eval_ast(head->node.Signed.factor));
         case U_PLUS:
             return eval_ast(head->node.Signed.factor);
+        case DEQ:
+            return (left == right);    
+        case GT:
+            return (left > right);
+        case LT:
+            return (left < right);
         case ASSIGN:
             temp_value = eval_ast(head->node.Assign.value);
             sym_entry(sym_tab,head->node.Assign.id_name,temp_value);          
@@ -142,8 +148,8 @@ long double eval_ast(AST_NODE *root){
                 memmove(temp_ch,(++str_node(head).string),str_node(head).len);
                 str_node(head).string = temp_ch;
                 print_value(STR,print_node(head));
-            }    
-            
+            }
+
         default:
             return 0;
     }
