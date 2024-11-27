@@ -153,6 +153,7 @@ void    *factor();
 void    *epsilon();
 void    *program();
 void    *declaration();
-long double     eval_ast(AST_NODE*);
+
+long double    eval_ast(AST_NODE*);
 
 #endif
