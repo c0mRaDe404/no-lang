@@ -118,6 +118,8 @@ AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr);
 
 AST_NODE *mk_print_node(AST_TYPE type,AST_NODE *expr);
 
+AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length);
+
 #define RULE(x,y) printf("%s : %s\n",#x,y);
 #define ERROR 100
 #define SUCCESS 200

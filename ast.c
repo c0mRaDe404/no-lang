@@ -3,6 +3,12 @@
 #include <stdlib.h>
 
 
+#define BINARY  head->ast_type == ADD  || head->ast_type == MUL \
+                || head->ast_type == DIV || head ->ast_type==SUB \
+                || head->ast_type == STMT
+
+#define UNARY  head != NULL && head->ast_type == NO
+
 void print_value(long double value){       
         fprintf(stdout,"%Lf\n",value);
 }
@@ -50,22 +56,29 @@ AST_NODE *mk_print_node(AST_TYPE type,AST_NODE *expr){
     return new_node;
 }
 
+AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length){
+    AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->ast_type = STR;
+    new_node->node.Str.string = string;
+    new_node->node.Str.len = length;
+    return new_node;
+}
+
 long double eval_ast(AST_NODE *root){
     
     AST_NODE *head = root;
     int type;
     long double temp_value;
+    void *temp;
     long double left,right;
     AST_NODE *left_node,*right_node;
     left_node  = NULL;
     right_node = NULL;
-
-    if(head->ast_type != ASSIGN){
+        
+    if(BINARY){
         left_node = head->node.Binary.left;
         right_node = head->node.Binary.right;
-    }
-
-    if(head != NULL && head->ast_type == NO) {
+    }else if(UNARY) {
         //if i add the pointer support instead long this doesn't needed anymore;
         if(head->node.Unary.ref != NULL) head->node.Unary.num = *(head->node.Unary.ref);
         return head->node.Unary.num;
@@ -95,6 +108,8 @@ long double eval_ast(AST_NODE *root){
         case PRNT:
             print_value(eval_ast(head->node.Print.expr));
             return temp_value;
+        case STR:
+            break;
         default:
             return 0;
     }

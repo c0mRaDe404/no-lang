@@ -1,1 +1,3 @@
-print("string");
+let hi = 19;
+let hello = 20;
+let a = hi+hello;

@@ -2,7 +2,7 @@
 #include "defs.h"
 #include <stdio.h>
 
-//#define S_VIEW
+#define S_VIEW
 
 TOKEN_TYPE cur_token;
 char *prev_token;

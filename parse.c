@@ -248,8 +248,8 @@ void *factor(){
             node->node.Unary.ref = &table->value; 
             return node;
         case STRING:
-            match(STRING);
-            break;
+            match(STRING); 
+            return mk_string_node(STR,prev_token,strlen(prev_token));
         default:
             printf("Syntax error at line %d\n near %s\n",line,prev_token);
             exit(ERROR);
