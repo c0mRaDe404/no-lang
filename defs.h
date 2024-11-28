@@ -25,7 +25,8 @@ typedef enum {
     IF_KWD,
     ELSE_KWD,
     OPEN_CURLY,
-    CLOSE_CURLY
+    CLOSE_CURLY,
+    WHILE_STMT
 }TOKEN_TYPE;
 
 
@@ -45,7 +46,8 @@ typedef enum{
     GT,
     LT,
     IF,
-    ELSE
+    ELSE,
+    WHILE
 }AST_TYPE;
 
 
@@ -88,6 +90,7 @@ typedef struct AST_NODE{
         }Str;
 
     }node;
+
 }AST_NODE;
 
 /*-----------------------------*/

@@ -31,7 +31,7 @@ int line = 1;
 "print"                     {return PRINT;}
 "if"                        {return IF_KWD;}
 "else"                      {return ELSE_KWD;}
-
+"while"                     {return WHILE_STMT;}
 
 (\"|\')(.+?)([^\\n\t\"]+)(\"|\') {return STRING;}
 [a-zA-Z_][a-zA-Z_]*         {return ID;}

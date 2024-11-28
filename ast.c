@@ -155,6 +155,11 @@ long double eval_ast(AST_NODE *root){
             #define value_node     head->node.Binary.right
             if(eval_ast(condition_node)) return eval_ast(value_node);
             return 0;
+        case WHILE:
+            #define condition_node head->node.Binary.left
+            #define value_node     head->node.Binary.right
+            while(eval_ast(condition_node)) eval_ast(value_node);
+            return 0;
         default:
             return 0;
     }

@@ -8,10 +8,15 @@ stmt            -> exp (";")?
                 |  declaration (";")?
                 | "print" "(" exp ")" (";")?
                 |  if-stmt (";")?
+                | loop-stmt(";")?
 
 if-stmt         -> "if" conditional block (else-stmt)?
+else_stmt       -> "else" block  //dangling else prob occurs
 
-else-stmt       -> "else" stmts
+loop-stmt       -> while-stmt
+                | for-stmt
+
+while-stmt      -> "while" conditional block
 
 conditional     -> exp (("==" | "<" | ">" ) exp)? 
 

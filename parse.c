@@ -93,6 +93,11 @@ void *statement(){
             left = expression();
             right = block();
             return mk_binary_node(IF,left,right);
+        case WHILE_STMT:
+            match(WHILE_STMT);
+            left = expression();
+            right = block();
+            return mk_binary_node(WHILE,left,right);
         default:
             node = expression();
             match(SEMI_COLON);
