@@ -1,20 +1,27 @@
 program     -> stmts
 
-stmts       -> stmt stmts
+block       ->   "{" stmts "}"
 
+stmts       -> stmt stmts | stmt
 
-stmt            -> exp ";"
-                |  declaration ";"
-                | "print" "(" exp ")" ";"
+stmt            -> exp (";")?
+                |  declaration (";")?
+                | "print" "(" exp ")" (";")?
+                |  if-stmt (";")?
+
+if-stmt         -> "if" conditional block (else-stmt)?
+
+else-stmt       -> "else" stmts
 
 conditional     -> exp (("==" | "<" | ">" ) exp)? 
 
-declaraion      -> "let" ID "="  exp 
-
+declaraion      -> "let" ID "="  exp        
+ 
+// would add sooner or later
 //assign          -> ID "=" assign | exp 
 
 
-exp         -> term exp_prime | exp 
+exp         -> term exp_prime  
 
 exp_prime   -> "+" term exp_prime 
             |  "-" term exp_prime 

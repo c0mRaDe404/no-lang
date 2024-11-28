@@ -6,7 +6,9 @@
 #define DEBUG
 #undef DEBUG
 
-#define RELATIONAL_OP(x) (x == DOUBLE_EQ || x == G_THAN || x == L_THAN)
+#define RELATIONAL_OP(token) (token == DOUBLE_EQ || token == G_THAN || token == L_THAN)
+#define END_OF_FILE(token) (token == EOS) 
+#define END_OF_STMT(token) (token == CLOSE_CURLY)
 
 AST_TYPE token_to_ast(TOKEN_TYPE type){
         switch(type){
@@ -46,9 +48,18 @@ void match(TOKEN_TYPE token) {
 }
 
 
+void *block(){
+
+    match(OPEN_CURLY);
+    AST_NODE *node = program();
+    match(CLOSE_CURLY);
+    return node;
+}
+
 void *program(){
     AST_NODE *node1,*node2;
-    if(cur_token == EOS) return NULL;
+    #define END(token) (END_OF_FILE(token) || END_OF_STMT(token))
+    if(END(cur_token)) return NULL;
     node1 = statement();
     node2 = program();
     return mk_binary_node(STMT,node1,node2);
@@ -62,6 +73,8 @@ void *statement(){
     #endif
 
     AST_NODE *node;
+    AST_NODE *left;
+    AST_NODE *right;
 
     switch(cur_token){
         case LET:
@@ -75,6 +88,11 @@ void *statement(){
             match(R_PAREN);
             match(SEMI_COLON);
             return mk_print_node(PRNT,node);
+        case IF_KWD:
+            match(IF_KWD);
+            left = expression();
+            right = block();
+            return mk_binary_node(IF,left,right);
         default:
             node = expression();
             match(SEMI_COLON);
@@ -182,6 +200,7 @@ void *exp_prime(){
             case DOUBLE_EQ:
             case G_THAN:
             case L_THAN:
+            case OPEN_CURLY:
                 return epsilon();
             default:
                 printf("Syntax error at line %d near %s\n",line,prev_token);
@@ -238,7 +257,8 @@ void *term_prime(){
             case R_PAREN:
             case DOUBLE_EQ:
             case G_THAN:
-            case L_THAN: 
+            case L_THAN:
+            case OPEN_CURLY:
                 return epsilon();
             default:
                 printf("Syntax error at line %d near %s\n",line,prev_token);

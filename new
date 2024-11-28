@@ -1,0 +1,12 @@
+let a = 1;
+let b = 10;
+let c = a+b;
+
+if(a==b){
+    print("HELLO WORLD");
+    print("GOODBYE WORLD");
+}if(a+b > a){
+    print("FUCK YOU WORLD");
+}if(a+b == c){
+    print("I AM THE WORLD");
+}

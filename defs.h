@@ -21,7 +21,11 @@ typedef enum {
     L_THAN,
     TRUE,
     FALSE,
-    STRING
+    STRING,
+    IF_KWD,
+    ELSE_KWD,
+    OPEN_CURLY,
+    CLOSE_CURLY
 }TOKEN_TYPE;
 
 
@@ -39,7 +43,9 @@ typedef enum{
     STR,
     DEQ,
     GT,
-    LT
+    LT,
+    IF,
+    ELSE
 }AST_TYPE;
 
 
@@ -156,7 +162,7 @@ void    *factor();
 void    *epsilon();
 void    *program();
 void    *declaration();
-
+void    *block();
 long double    eval_ast(AST_NODE*);
 
 #endif

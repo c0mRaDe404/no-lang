@@ -149,7 +149,12 @@ long double eval_ast(AST_NODE *root){
                 str_node(head).string = temp_ch;
                 print_value(STR,print_node(head));
             }
-
+            return 0;
+        case IF:
+            #define condition_node head->node.Binary.left
+            #define value_node     head->node.Binary.right
+            if(eval_ast(condition_node)) return eval_ast(value_node);
+            return 0;
         default:
             return 0;
     }
