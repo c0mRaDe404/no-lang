@@ -866,12 +866,12 @@ YY_RULE_SETUP
 case 16:
 YY_RULE_SETUP
 #line 30 "lex.l"
-{return TRUE;}
+{return TRUE_EXP;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
 #line 31 "lex.l"
-{return FALSE;}
+{return FALSE_EXP;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP

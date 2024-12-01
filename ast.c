@@ -54,6 +54,14 @@ AST_NODE *mk_num_node(AST_TYPE type,long double num){
     return new_node;
 }
 
+AST_NODE *mk_bool_node(AST_TYPE type,Boolean value){
+    
+    AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->ast_type = type;
+    new_node->node.Bool.value = value;
+    return new_node;
+}
+
 AST_NODE *mk_unary_node(AST_TYPE type,AST_NODE *factor){
     AST_NODE *new_node = malloc(sizeof(AST_NODE));
 
@@ -127,6 +135,10 @@ long double eval_ast(AST_NODE *root){
             if(head->node.Unary.ref != NULL){
                 return *(head->node.Unary.ref);
             }else return head->node.Unary.num;
+        case TRUE:
+            return (Boolean) head->node.Bool.value;
+        case FALSE:
+            return (Boolean)head->node.Bool.value;
         case ADD:
             return (left+right);
         case SUB:

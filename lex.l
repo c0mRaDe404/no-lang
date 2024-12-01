@@ -27,8 +27,8 @@ int line = 1;
 
 
 "let"                                               {return LET;}
-"true"                                              {return TRUE;}
-"false"                                             {return FALSE;}
+"true"                                              {return TRUE_EXP;}
+"false"                                             {return FALSE_EXP;}
 "print"                                             {return PRINT;}
 "if"                                                {return IF_KWD;}
 "else"                                              {return ELSE_KWD;}

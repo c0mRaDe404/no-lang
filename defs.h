@@ -23,8 +23,8 @@ typedef enum {
     DOUBLE_EQ,
     G_THAN,
     L_THAN,
-    TRUE,
-    FALSE,
+    TRUE_EXP,
+    FALSE_EXP,
     STRING,
     IF_KWD,
     ELSE_KWD,
@@ -55,9 +55,15 @@ typedef enum{
     NOT,
     IF,
     ELSE,
-    WHILE
+    WHILE,
+    TRUE,
+    FALSE
 }AST_TYPE;
 
+typedef enum{
+    false = 0,
+    true = 1
+}Boolean;
 
 typedef struct AST_NODE{
     AST_TYPE ast_type;
@@ -103,6 +109,10 @@ typedef struct AST_NODE{
             struct AST_NODE *right;
         }If;
 
+        struct {
+            Boolean value;
+        }Bool;
+
     }node;
 
 }AST_NODE;
@@ -147,6 +157,11 @@ AST_NODE *mk_print_node(AST_TYPE type,AST_NODE *expr);
 AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length);
 
 AST_NODE *mk_if_node(AST_TYPE type,AST_NODE*exp,AST_NODE *if_true,AST_NODE *if_false);
+
+
+AST_NODE *mk_bool_node(AST_TYPE type,Boolean value);
+
+
 
 #define RULE(x,y) printf("%s : %s\n",#x,y);
 #define ERROR 100
