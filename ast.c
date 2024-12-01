@@ -6,12 +6,16 @@
 #include <ctype.h>
 
 
+
 #define BINARY(head)   head->ast_type == ADD  || head->ast_type == MUL \
                       || head->ast_type == DIV || head ->ast_type ==SUB \
                       || head->ast_type == STMT || head->ast_type == DEQ \
-                      || head->ast_type == GT   || head->ast_type == LT
+                      || head->ast_type == GT   || head->ast_type == LT   \
+                      || head->ast_type == MOD  || head->ast_type == AND   \
+                      || head->ast_type == OR
 
-#define UNARY(head)  head != NULL && head->ast_type == NO
+#define UNARY(head)  (head != NULL) && (head->ast_type == NO || head->ast_type == NOT \
+                     || head->ast_type == U_PLUS || head->ast_type == U_MIN )
 
 #define BINARY_OR_UNARY(head) BINARY(head) || UNARY(head)
 
@@ -83,6 +87,19 @@ AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length){
     return new_node;
 }
 
+
+AST_NODE *mk_if_node(AST_TYPE type,AST_NODE *exp,AST_NODE *if_true,AST_NODE *if_false){
+
+    AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->ast_type = type;
+    new_node->node.If.exp = exp;
+    new_node->node.If.left = if_true;
+    new_node->node.If.right = if_false;
+    return new_node;
+}
+
+
+
 long double eval_ast(AST_NODE *root){
     
     AST_NODE *head = root;
@@ -100,17 +117,16 @@ long double eval_ast(AST_NODE *root){
         right_node = head->node.Binary.right;
     }
 
-    if(UNARY(head)) {
-        //if i add the pointer support instead long this doesn't needed anymore;
-        if(head->node.Unary.ref != NULL) head->node.Unary.num = *(head->node.Unary.ref);
-        return head->node.Unary.num;
-    }
 
     if(left_node != NULL) left = eval_ast(head->node.Binary.left);
     if(right_node != NULL) right = eval_ast(head->node.Binary.right);
 
     type = head->ast_type;
     switch(type){
+        case NO:
+            if(head->node.Unary.ref != NULL){
+                return *(head->node.Unary.ref);
+            }else return head->node.Unary.num;
         case ADD:
             return (left+right);
         case SUB:
@@ -119,10 +135,18 @@ long double eval_ast(AST_NODE *root){
             return (left*right);
         case DIV:
             return (left/right);
+        case MOD:
+            return ((int)left % (int)right);
         case U_MIN:
             return -(eval_ast(head->node.Signed.factor));
         case U_PLUS:
             return eval_ast(head->node.Signed.factor);
+        case NOT:
+            return !(eval_ast(head->node.Signed.factor));
+        case AND:
+            return (left && right);
+        case OR:
+            return (left || right);
         case DEQ:
             return (left == right);    
         case GT:
@@ -142,23 +166,27 @@ long double eval_ast(AST_NODE *root){
                 print_value(NO,temp_ptr);
                 return temp_value;
             }else if(print_node(head)->ast_type == STR){
-                #define str_node(head) print_node(head)->node.Str
-                str_node(head).len = str_node(head).len-2;
-                temp_ch = malloc(sizeof(char));
-                memmove(temp_ch,(++str_node(head).string),str_node(head).len);
-                str_node(head).string = temp_ch;
+                #define str_node(head) print_node(head)->node.Str 
                 print_value(STR,print_node(head));
             }
+            #undef print_node
             return 0;
         case IF:
-            #define condition_node head->node.Binary.left
-            #define value_node     head->node.Binary.right
-            if(eval_ast(condition_node)) return eval_ast(value_node);
+            #define condition_node head->node.If.exp
+            #define true_node     head->node.If.left
+            #define false_node    head->node.If.right
+            if(eval_ast(condition_node)) return eval_ast(true_node);
+            else if(false_node) return eval_ast(false_node);
+            #undef condition_node
+            #undef true_node
+            #undef false_node
             return 0;
         case WHILE:
             #define condition_node head->node.Binary.left
             #define value_node     head->node.Binary.right
             while(eval_ast(condition_node)) eval_ast(value_node);
+            #undef condition_node
+            #undef value_node 
             return 0;
         default:
             return 0;

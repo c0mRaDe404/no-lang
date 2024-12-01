@@ -9,10 +9,14 @@ typedef enum {
     MINUS,
     MULTIPLY,
     DIVIDE,
+    MODULO,
     L_PAREN,
     R_PAREN,
     EQ,
     SEMI_COLON,
+    AND_OP,
+    OR_OP,
+    NOT_OP,
     ID,
     LET,
     PRINT,
@@ -36,6 +40,7 @@ typedef enum{
     SUB,
     MUL,
     DIV,
+    MOD,
     U_PLUS,
     U_MIN,
     ASSIGN,
@@ -45,6 +50,9 @@ typedef enum{
     DEQ,
     GT,
     LT,
+    AND,
+    OR,
+    NOT,
     IF,
     ELSE,
     WHILE
@@ -88,6 +96,12 @@ typedef struct AST_NODE{
             char *string;
             size_t len;
         }Str;
+        
+        struct {
+            struct AST_NODE *exp;
+            struct AST_NODE *left;
+            struct AST_NODE *right;
+        }If;
 
     }node;
 
@@ -131,6 +145,8 @@ AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr);
 AST_NODE *mk_print_node(AST_TYPE type,AST_NODE *expr);
 
 AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length);
+
+AST_NODE *mk_if_node(AST_TYPE type,AST_NODE*exp,AST_NODE *if_true,AST_NODE *if_false);
 
 #define RULE(x,y) printf("%s : %s\n",#x,y);
 #define ERROR 100

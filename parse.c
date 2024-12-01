@@ -28,8 +28,14 @@ AST_TYPE token_to_ast(TOKEN_TYPE type){
                 return LT;
              case PRINT:
                 return PRNT;
+             case MODULO:
+                return MOD;
              case EQ :
                 return ASSIGN;
+            case AND_OP:
+                return AND;
+            case OR_OP:
+                return OR;
              default:
                 return 0;
         }
@@ -49,11 +55,17 @@ void match(TOKEN_TYPE token) {
 
 
 void *block(){
-
+    
+    AST_NODE *node = NULL;
+    if(cur_token == OPEN_CURLY){
     match(OPEN_CURLY);
-    AST_NODE *node = program();
+    node = program();
     match(CLOSE_CURLY);
     return node;
+    }else {
+        return program();
+    } 
+    return NULL;
 }
 
 void *program(){
@@ -90,9 +102,14 @@ void *statement(){
             return mk_print_node(PRNT,node);
         case IF_KWD:
             match(IF_KWD);
-            left = expression();
-            right = block();
-            return mk_binary_node(IF,left,right);
+            node = expression();
+            left = block();
+            right = NULL;
+            if(cur_token == ELSE_KWD){
+                match(ELSE_KWD);
+                right = block();
+            }
+            return mk_if_node(IF,node,left,right);
         case WHILE_STMT:
             match(WHILE_STMT);
             left = expression();
@@ -130,13 +147,11 @@ void *assignment(){
     
     AST_NODE *node;
     char *id = strndup(yytext,yyleng);
-    #ifdef DEBUG
-    RULE(ASSIGN,"assign");
-    RULE(ID,yytext);
-    #endif
-    match(ID);
-    match(EQ);
-    return mk_assign_node(ASSIGN,id,expression());
+    if(sym_check(sym_tab,id)){
+            match(ID);
+            match(EQ);
+            return mk_assign_node(ASSIGN,id,expression());
+    }else return NULL;
 }
 
 
@@ -155,8 +170,12 @@ void *expression(){
                 type = cur_token;
                 match(type);
                 return  mk_binary_node(token_to_ast(type),node1,expression());
+        }else if(cur_token == EQ){
+            type = cur_token;
+            char *id = strndup(yytext,yyleng);
+            match(type);
+            return mk_assign_node(ASSIGN,id,assignment());
         }
-
         return node1;
     }else{
         node2->node.Binary.left = node1;
@@ -174,9 +193,12 @@ void *expression(){
 
 void *exp_prime(){
 
-    if(cur_token == PLUS || cur_token == MINUS) {
+    #define check_op(op) (op==PLUS||op==MINUS||op==AND_OP||op==OR_OP)
+    #define find_op_type(op) ((op == PLUS)? PLUS : (op== MINUS)? MINUS : (op==AND_OP)? AND_OP : OR_OP)
 
-        TOKEN_TYPE type = (cur_token == PLUS)? PLUS:MINUS;
+    if(check_op(cur_token)) {
+
+        TOKEN_TYPE type = find_op_type(cur_token);
         
         #ifdef DEBUG
         RULE(SYMBOL,yytext);
@@ -187,11 +209,11 @@ void *exp_prime(){
         AST_NODE *node2 = exp_prime();
 
         if(node2 == NULL){
-            return mk_binary_node(((type == PLUS) ? ADD:SUB),NULL,node1);
+            return mk_binary_node(token_to_ast(type),NULL,node1);
         }else{
 
             node2->node.Binary.left = node1;
-            node2 = mk_binary_node(((type == PLUS) ? ADD:SUB),node1,node2);
+            node2 = mk_binary_node(token_to_ast(type),node1,node2);
             return node2;
         }
 
@@ -211,7 +233,9 @@ void *exp_prime(){
                 printf("Syntax error at line %d near %s\n",line,prev_token);
                 exit(ERROR);
         }    }
-
+    
+    #undef check_op
+    #undef find_op_type
     return NULL;
 }
 
@@ -233,9 +257,11 @@ void *term(){
 
 void *term_prime(){
 
-    if(cur_token == DIVIDE || cur_token == MULTIPLY){
-        TOKEN_TYPE type = (cur_token == DIVIDE)? DIVIDE:MULTIPLY;
-        
+    #define check_op(op) (op==DIVIDE||op==MULTIPLY||op==MODULO)
+    #define find_op_type(op) (op == DIVIDE)? DIVIDE:(op == MODULO) ? MODULO : MULTIPLY
+
+    if(check_op(cur_token)){
+        TOKEN_TYPE type = find_op_type(cur_token);        
         #ifdef DEBUG
         RULE(SYMBOL,yytext);
         #endif
@@ -244,10 +270,10 @@ void *term_prime(){
         AST_NODE *node2 = term_prime();
 
         if(node2 == NULL){
-            return mk_binary_node(((type == DIVIDE) ? DIV:MUL),NULL,node1);
+            return mk_binary_node(((type == DIVIDE) ? DIV:(type == MODULO) ? MOD : MUL),NULL,node1);
         }else{
             node2->node.Binary.left = node1;
-            node2 = mk_binary_node(((type == DIVIDE) ? DIV:MUL),node1,node2);
+            node2 = mk_binary_node(((type == DIVIDE) ? DIV: (type == MODULO)? MOD : MUL),node1,node2);
             return node2;
         }
 
@@ -257,6 +283,8 @@ void *term_prime(){
         switch(cur_token){
             case PLUS :
             case MINUS:
+            case AND_OP:
+            case OR_OP:
             case EOS:
             case SEMI_COLON:
             case R_PAREN:
@@ -271,6 +299,8 @@ void *term_prime(){
         }
     }
 
+    #undef check_op
+    #undef find_op_type
     return NULL;
 }
 
@@ -319,9 +349,14 @@ void *factor(){
             node = mk_num_node(NO,table->value);
             node->node.Unary.ref = &table->value; 
             return node;
+        case NOT_OP:
+            type = cur_token;
+            match(type);
+            node = expression();
+            return mk_unary_node(NOT,node);
         case STRING:
-            match(STRING); 
-            return mk_string_node(STR,prev_token,strlen(prev_token));
+            match(STRING);            
+            return mk_string_node(STR,strndup(prev_token+1,strlen(prev_token)-2),strlen(prev_token)-2);
         default:
             printf("Syntax error at line %d\n near %s\n",line,prev_token);
             exit(ERROR);
