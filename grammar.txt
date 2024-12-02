@@ -1,6 +1,6 @@
 program     -> stmts
 
-block       ->   "{" stmts "}"
+block       ->   "{" (stmts)? "}"
 
 stmts       -> stmt stmts | stmt
 

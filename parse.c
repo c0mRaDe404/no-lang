@@ -63,7 +63,7 @@ void *block(){
     AST_NODE *node = NULL;
     if(cur_token == OPEN_CURLY){
         match(OPEN_CURLY);
-        node = program();
+        if(cur_token != CLOSE_CURLY) node = program();
         match(CLOSE_CURLY);
         return node;
     }else {

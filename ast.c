@@ -12,7 +12,7 @@
                       || head->ast_type == STMT || head->ast_type == DEQ \
                       || head->ast_type == GT   || head->ast_type == LT   \
                       || head->ast_type == MOD  || head->ast_type == AND   \
-                      || head->ast_type == OR
+                      || head->ast_type == OR    
 
 #define UNARY(head)  (head != NULL) && (head->ast_type == NO || head->ast_type == NOT \
                      || head->ast_type == U_PLUS || head->ast_type == U_MIN )
@@ -187,8 +187,13 @@ long double eval_ast(AST_NODE *root){
             #define condition_node head->node.If.exp
             #define true_node     head->node.If.left
             #define false_node    head->node.If.right
-            if(eval_ast(condition_node)) return eval_ast(true_node);
-            else if(false_node) return eval_ast(false_node);
+            if(eval_ast(condition_node)){ 
+                if(true_node != NULL) 
+                    return eval_ast(true_node);
+            }else {
+                if(false_node != NULL) 
+                    return eval_ast(false_node);
+            }
             #undef condition_node
             #undef true_node
             #undef false_node
@@ -196,7 +201,10 @@ long double eval_ast(AST_NODE *root){
         case WHILE:
             #define condition_node head->node.Binary.left
             #define value_node     head->node.Binary.right
-            while(eval_ast(condition_node)) eval_ast(value_node);
+            while(eval_ast(condition_node)){
+                if(value_node != NULL) 
+                    eval_ast(value_node);
+            }
             #undef condition_node
             #undef value_node 
             return 0;

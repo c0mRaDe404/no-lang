@@ -1,6 +1,8 @@
+- symbol table fix(generic type should be added)
 - scope
 - control statements like break,continue
 - better hash algo for symbol table
 - for loop
 - functions
-
+- arrays and memory pool 
+- 

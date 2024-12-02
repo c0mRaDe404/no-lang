@@ -30,7 +30,8 @@ typedef enum {
     ELSE_KWD,
     OPEN_CURLY,
     CLOSE_CURLY,
-    WHILE_STMT
+    WHILE_STMT,
+    LIST_STMT
 }TOKEN_TYPE;
 
 
@@ -57,7 +58,8 @@ typedef enum{
     ELSE,
     WHILE,
     TRUE,
-    FALSE
+    FALSE,
+    LIST
 }AST_TYPE;
 
 typedef enum{
@@ -112,7 +114,12 @@ typedef struct AST_NODE{
         struct {
             Boolean value;
         }Bool;
-
+        
+        struct{
+            struct AST_NODE **elements;
+            size_t size;
+            size_t capacity;
+        }List;
     }node;
 
 }AST_NODE;
