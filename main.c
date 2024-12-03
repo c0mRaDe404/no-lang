@@ -7,7 +7,7 @@
 TOKEN_TYPE cur_token;
 char *prev_token;
 S_TABLE *sym_tab;
-
+size_t loop_counter = 0;
 
 
 int main(int argc,char **argv){

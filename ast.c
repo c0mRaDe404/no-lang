@@ -19,6 +19,8 @@
 
 #define BINARY_OR_UNARY(head) BINARY(head) || UNARY(head)
 
+FLOW flow = NONE;
+
 
 
 void print_value(AST_TYPE type,void *value){ 
@@ -96,6 +98,7 @@ AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length){
 }
 
 
+
 AST_NODE *mk_if_node(AST_TYPE type,AST_NODE *exp,AST_NODE *if_true,AST_NODE *if_false){
 
     AST_NODE *new_node = malloc(sizeof(AST_NODE));
@@ -106,12 +109,26 @@ AST_NODE *mk_if_node(AST_TYPE type,AST_NODE *exp,AST_NODE *if_true,AST_NODE *if_
     return new_node;
 }
 
+AST_NODE *mk_for_node(AST_TYPE type,AST_NODE *init,AST_NODE *cond,AST_NODE *exp,AST_NODE *stmts){
 
+    AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->ast_type = type;
+    new_node->node.For.init = init;
+    new_node->node.For.cond = cond;
+    new_node->node.For.exp = exp;
+    new_node->node.For.stmts = stmts;
+    return new_node;
+}
+AST_NODE *mk_flow_node(AST_TYPE type){
+    AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->ast_type = type;
+    return new_node; 
+}
 
 long double eval_ast(AST_NODE *root){
     
     AST_NODE *head = root;
-    int type;
+    AST_TYPE type;
     char *temp_ch;
     long double temp_value;
     long double *temp_ptr;
@@ -119,6 +136,8 @@ long double eval_ast(AST_NODE *root){
     AST_NODE *left_node,*right_node;
     left_node  = NULL;
     right_node = NULL;
+
+    if(flow == CONT_FLOW) return 1;
 
     if(BINARY(head)){
         left_node = head->node.Binary.left;
@@ -182,7 +201,7 @@ long double eval_ast(AST_NODE *root){
                 print_value(STR,print_node(head));
             }
             #undef print_node
-            return 0;
+            return 1;
         case IF:
             #define condition_node head->node.If.exp
             #define true_node     head->node.If.left
@@ -197,16 +216,57 @@ long double eval_ast(AST_NODE *root){
             #undef condition_node
             #undef true_node
             #undef false_node
-            return 0;
+            return 1;
+        case FOR:
+            #define init_stmt head->node.For.init
+            #define cond_stmt head->node.For.cond
+            #define expr_stmt head->node.For.exp
+            #define statement head->node.For.stmts
+            
+            for(eval_ast(init_stmt);eval_ast(cond_stmt);eval_ast(expr_stmt)){
+                if(statement != NULL && flow != CONT_FLOW) {
+                    eval_ast(statement);
+                }else if(flow == BRK_FLOW){
+                    flow = NONE;
+                    break;
+                }else if(flow == CONT_FLOW){
+                    flow = NONE;
+                    continue;
+                }else{
+                    return 1;
+                }
+            }
+
+            #undef init_stmt 
+            #undef cond_stmt 
+            #undef expr_stmt 
+            #undef statement     
         case WHILE:
             #define condition_node head->node.Binary.left
             #define value_node     head->node.Binary.right
+
             while(eval_ast(condition_node)){
-                if(value_node != NULL) 
+                if(value_node != NULL && flow != CONT_FLOW) {
                     eval_ast(value_node);
+                }else if(flow == BRK_FLOW){
+                    flow = NONE; 
+                    break;
+                }else if(flow == CONT_FLOW) {
+                    flow = NONE;
+                    continue;
+                }else{
+                    return 1;
+                }
             }
             #undef condition_node
             #undef value_node 
+            return 1;
+    
+        case BRK:
+            flow = BRK_FLOW;
+            return 0;
+        case CONT:
+            flow = CONT_FLOW;
             return 0;
         default:
             return 0;

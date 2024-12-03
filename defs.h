@@ -31,6 +31,9 @@ typedef enum {
     OPEN_CURLY,
     CLOSE_CURLY,
     WHILE_STMT,
+    FOR_STMT,
+    BREAK,
+    CONTINUE,
     LIST_STMT
 }TOKEN_TYPE;
 
@@ -56,7 +59,10 @@ typedef enum{
     NOT,
     IF,
     ELSE,
+    FOR,
     WHILE,
+    BRK,
+    CONT,
     TRUE,
     FALSE,
     LIST
@@ -112,6 +118,13 @@ typedef struct AST_NODE{
         }If;
 
         struct {
+            struct AST_NODE *init;
+            struct AST_NODE *cond;
+            struct AST_NODE *exp;
+            struct AST_NODE *stmts;
+        }For;
+
+        struct {
             Boolean value;
         }Bool;
         
@@ -123,6 +136,20 @@ typedef struct AST_NODE{
     }node;
 
 }AST_NODE;
+
+
+
+
+/*------------------------------*/
+
+
+typedef enum{
+    NONE,
+    BRK_FLOW,
+    CONT_FLOW
+}FLOW;
+
+
 
 /*-----------------------------*/
 
@@ -165,8 +192,12 @@ AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length);
 
 AST_NODE *mk_if_node(AST_TYPE type,AST_NODE*exp,AST_NODE *if_true,AST_NODE *if_false);
 
+AST_NODE *mk_for_node(AST_TYPE type,AST_NODE *init,AST_NODE *cond,AST_NODE *exp,AST_NODE *stmts);
 
 AST_NODE *mk_bool_node(AST_TYPE type,Boolean value);
+
+
+AST_NODE *mk_flow_node(AST_TYPE type);
 
 
 

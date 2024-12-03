@@ -32,11 +32,13 @@ int line = 1;
 "print"                                             {return PRINT;}
 "if"                                                {return IF_KWD;}
 "else"                                              {return ELSE_KWD;}
+"for"                                               {return FOR_STMT;}
 "while"                                             {return WHILE_STMT;}
 "and"                                               {return AND_OP;}
 "or"                                                {return OR_OP;}
 "not"                                               {return NOT_OP;}
-
+"break"                                             {return BREAK;}
+"continue"                                          {return CONTINUE;}
 
 
 

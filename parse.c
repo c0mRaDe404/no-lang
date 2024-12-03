@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern size_t loop_counter;
+
 #define DEBUG
 #undef DEBUG
 
@@ -40,6 +42,10 @@ AST_TYPE token_to_ast(TOKEN_TYPE type){
             return TRUE;
         case FALSE_EXP:
             return FALSE;
+        case BREAK:
+            return BRK;
+        case CONTINUE:
+            return CONT;
         default:
             return 0;
     }
@@ -88,41 +94,67 @@ void *statement(){
     RULE(STATEMENT,"stmt");
 #endif
 
-    AST_NODE *node;
-    AST_NODE *left;
-    AST_NODE *right;
+    AST_NODE *n1,*n2,*n3,*n4;
+    AST_TYPE type;
 
     switch(cur_token){
         case LET:
-            node = declaration();
+            n1 = declaration();
             match(SEMI_COLON);
-            return node;
+            return n1;
         case PRINT:
             match(PRINT);
             match(L_PAREN);
-            node = expression();
+            n1 = expression();
             match(R_PAREN);
             match(SEMI_COLON);
-            return mk_print_node(PRNT,node);
+            return mk_print_node(PRNT,n1);
         case IF_KWD:
             match(IF_KWD);
-            node = expression();
-            left = block();
-            right = NULL;
+            n1 = expression();
+            n2 = block();
+            n3 = NULL;
             if(cur_token == ELSE_KWD){
                 match(ELSE_KWD);
-                right = block();
+                n3 = block();
             }
-            return mk_if_node(IF,node,left,right);
+            return mk_if_node(IF,n1,n2,n3);
+        case FOR_STMT:
+            match(FOR_STMT);
+            loop_counter++;
+            match(L_PAREN);
+            n1 = declaration();
+            match(SEMI_COLON);
+            n2 = expression();
+            match(SEMI_COLON);
+            n3 = declaration();
+            match(R_PAREN);
+            n4 = block();
+            loop_counter--;
+            return mk_for_node(FOR,n1,n2,n3,n4);
         case WHILE_STMT:
             match(WHILE_STMT);
-            left = expression();
-            right = block();
-            return mk_binary_node(WHILE,left,right);
+            loop_counter++;
+            n1 = expression();
+            n2 = block();
+            loop_counter--;
+            return mk_binary_node(WHILE,n1,n2);
+        case BREAK:
+        case CONTINUE:
+            if(loop_counter == 0){
+                fprintf(stdout,"Syntax Error:%s outside the loop\n",yytext);
+                exit(0);
+            }else{
+                type = token_to_ast(cur_token); 
+                match(cur_token);
+                match(SEMI_COLON);
+                return mk_flow_node(type);
+            }
+            return NULL;
         default:
-            node = expression();
+            n1 = expression();
             match(SEMI_COLON);
-            return node;
+            return n1;
     }
 
     //node = expression();

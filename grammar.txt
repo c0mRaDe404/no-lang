@@ -9,14 +9,18 @@ stmt            -> exp (";")?
                 | "print" "(" exp ")" (";")?
                 |  if-stmt (";")?
                 | loop-stmt(";")?
+                | break-stmt ";"
+                | cont-stmt ";"
 
-if-stmt         -> "if" conditional block (else-stmt)?
-else_stmt       -> "else" block  //dangling else prob occurs
+
+
+if-stmt         -> "if" conditional (block)? (else-stmt)?
+else_stmt       -> "else" (block)?  //dangling else prob occurs
 
 loop-stmt       -> while-stmt
                 | for-stmt
 
-while-stmt      -> "while" conditional block
+while-stmt      -> "while" conditional (block)?
 
 conditional     -> exp (("==" | "<" | ">" ) exp)? 
 
