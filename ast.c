@@ -12,7 +12,8 @@
                       || head->ast_type == STMT || head->ast_type == DEQ \
                       || head->ast_type == GT   || head->ast_type == LT   \
                       || head->ast_type == MOD  || head->ast_type == AND   \
-                      || head->ast_type == OR    
+                      || head->ast_type == OR   || head->ast_type == GEQ    \
+                      || head->ast_type == LEQ  || head->ast_type == NEQ
 
 #define UNARY(head)  (head != NULL) && (head->ast_type == NO || head->ast_type == NOT \
                      || head->ast_type == U_PLUS || head->ast_type == U_MIN )
@@ -137,7 +138,7 @@ long double eval_ast(AST_NODE *root){
     left_node  = NULL;
     right_node = NULL;
 
-    if(flow == CONT_FLOW) return 1;
+    if(flow == CONT_FLOW) return 0;
 
     if(BINARY(head)){
         left_node = head->node.Binary.left;
@@ -184,6 +185,12 @@ long double eval_ast(AST_NODE *root){
             return (left > right);
         case LT:
             return (left < right);
+        case LEQ:
+            return (left <= right);
+        case GEQ:
+            return (left >= right);
+        case NEQ:
+            return (left != right);
         case ASSIGN:
             temp_value = eval_ast(head->node.Assign.value);
             sym_entry(sym_tab,head->node.Assign.id_name,temp_value);          
@@ -233,7 +240,7 @@ long double eval_ast(AST_NODE *root){
                     flow = NONE;
                     continue;
                 }else{
-                    return 1;
+                    return 0;
                 }
             }
 
@@ -255,12 +262,12 @@ long double eval_ast(AST_NODE *root){
                     flow = NONE;
                     continue;
                 }else{
-                    return 1;
+                    return 0;
                 }
             }
             #undef condition_node
             #undef value_node 
-            return 1;
+            return 0;
     
         case BRK:
             flow = BRK_FLOW;

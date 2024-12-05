@@ -1,8 +1,18 @@
 - symbol table fix(generic type should be added)
 - scope
-- control statements like break,continue
 - better hash algo for symbol table
-- for loop
 - functions
 - arrays and memory pool 
 - 
+
+finished:
+    - control statements like break,continue (done)
+    - for loop (done)
+
+
+issues:
+1.    a < n or a == n (error)
+    (a<n) or (a==n) (no error)
+
+2. inline comments not supporting
+3. for loop does't seem to stop even after it completed the task

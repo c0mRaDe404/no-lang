@@ -13,6 +13,9 @@ int line = 1;
 "=="                                                {    return DOUBLE_EQ; }
 ">"                                                 {    return G_THAN;    }
 "<"                                                 {    return L_THAN;    }
+"<="                                                {    return L_THAN_EQ; }
+">="                                                {    return G_THAN_EQ; }
+"!="                                                {    return NOT_EQ;    }
 "+"                                                 {    return PLUS;      }
 "-"                                                 {    return MINUS;     }
 "/"                                                 {    return DIVIDE;    }

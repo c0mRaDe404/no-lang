@@ -15,18 +15,18 @@ stmt            -> exp (";")?
 
 
 if-stmt         -> "if" conditional (block)? (else-stmt)?
-else_stmt       -> "else" (block)?  //dangling else prob occurs
+else_stmt       -> "else" (block)? 
 
 loop-stmt       -> while-stmt
                 | for-stmt
 
+for-stmt        -> "for" "(" (declaration|assignment) ";" conditional ";" exp ")" (block)?
 while-stmt      -> "while" conditional (block)?
 
 conditional     -> exp (("==" | "<" | ">" ) exp)? 
 
 declaraion      -> "let" ID "="  exp        
  
-// would add sooner or later
 //assign          -> ID "=" assign | exp 
 
             
