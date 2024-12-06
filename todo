@@ -11,8 +11,5 @@ finished:
 
 
 issues:
-1.    a < n or a == n (error)
-    (a<n) or (a==n) (no error)
-
-2. inline comments not supporting
-3. for loop does't seem to stop even after it completed the task
+1. break and continue not working properly
+2. for loop does't seem to stop even after it completed the task

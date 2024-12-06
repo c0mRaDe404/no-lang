@@ -2,6 +2,17 @@
 #define DEFS_H
 #include <stdio.h>
 
+#define RULE(x,y) printf("%s : %s\n",#x,y);
+#define ERROR 100
+#define SUCCESS 200
+
+
+struct AST_NODE;
+
+
+
+/*-----------ENUMS FOR TOKENS -----------------*/
+
 typedef enum {
     EOS,
     NUM,
@@ -79,6 +90,58 @@ typedef enum{
     true = 1
 }Boolean;
 
+typedef enum{
+    NONE,
+    BRK_FLOW,
+    CONT_FLOW
+}FLOW;
+
+
+
+/*-----------------------------------------------------------*/
+
+
+/*----------------- SYMBOL TABLE ---------------------------*/
+
+
+
+
+#define SYM_TABLE_S 50
+
+typedef struct SYM_TABLE{
+    char *id_name;
+    long double value;
+    long double *ref;
+    struct AST_NODE *value_ptr;
+    struct SYM_TABLE *next;
+}SYM_TABLE;
+
+typedef struct{
+    SYM_TABLE **sym_table;
+    size_t counter;
+}S_TABLE;
+
+
+size_t      hash(char*,size_t);
+S_TABLE     *sym_create();
+void        sym_entry(S_TABLE*,char*,long double);
+
+SYM_TABLE   *sym_fetch(S_TABLE*,char*);
+
+int         sym_check(S_TABLE *,char *,int);
+void        sym_update(void *,void *);
+
+/*---------------------------------------------------------*/
+
+
+
+
+
+
+
+
+/*------------------ AST TREE STRUCTURE ------------------*/
+
 typedef struct AST_NODE{
     AST_TYPE ast_type;
     union{
@@ -100,6 +163,7 @@ typedef struct AST_NODE{
         struct{
             char *id_name;
             struct AST_NODE *value;
+            S_TABLE *sym_tab; 
         }Assign;
 
         struct Program{
@@ -144,96 +208,68 @@ typedef struct AST_NODE{
 }AST_NODE;
 
 
-
-
-/*------------------------------*/
-
-
-typedef enum{
-    NONE,
-    BRK_FLOW,
-    CONT_FLOW
-}FLOW;
+/*----------------------------------------------------------*/
 
 
 
-/*-----------------------------*/
 
-#define SYM_TABLE_S 50
-
-typedef struct SYM_TABLE{
-    char *id_name;
-    long double value;
-    long double *ref;
-    AST_NODE *value_ptr;
-    struct SYM_TABLE *next;
-}SYM_TABLE;
+/*-------------- SCOPE STACK ---------------------------*/
 
 typedef struct{
-    SYM_TABLE **sym_table;
-    size_t counter;
-}S_TABLE;
+    S_TABLE **stack;
+    size_t size;
+    size_t top;
+}SCOPE_STACK;
+
+void *mk_stack(SCOPE_STACK *,size_t);
+S_TABLE *push(SCOPE_STACK *,S_TABLE *);
+S_TABLE *pop(SCOPE_STACK *);
+
+/*-------------------------------------------------------*/
 
 
-S_TABLE *sym_create();
-size_t hash(char*,size_t);
-void sym_entry(S_TABLE*,char*,long double);
+/*------------------ AST FUNCTIONS ----------------------*/
 
-SYM_TABLE *sym_fetch(S_TABLE*,char*);
+AST_NODE *mk_binary_node(AST_TYPE,AST_NODE *,AST_NODE *);
+AST_NODE *mk_num_node(AST_TYPE ,long double,void *);
 
-int sym_check(S_TABLE *,char *);
+AST_NODE *mk_unary_node(AST_TYPE,AST_NODE *);
 
-/*------------------------------*/
+AST_NODE *mk_assign_node(AST_TYPE,char *,AST_NODE *,S_TABLE *);
 
-AST_NODE *mk_binary_node(AST_TYPE type,AST_NODE *left,AST_NODE *right);
-AST_NODE *mk_num_node(AST_TYPE type,long double num);
+AST_NODE *mk_print_node(AST_TYPE,AST_NODE *);
 
-AST_NODE *mk_unary_node(AST_TYPE type,AST_NODE *factor);
+AST_NODE *mk_string_node(AST_TYPE,char *,size_t);
 
-AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr);
+AST_NODE *mk_if_node(AST_TYPE,AST_NODE*,AST_NODE *,AST_NODE *);
 
-AST_NODE *mk_print_node(AST_TYPE type,AST_NODE *expr);
+AST_NODE *mk_for_node(AST_TYPE,AST_NODE *,AST_NODE *,AST_NODE *,AST_NODE *);
 
-AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length);
-
-AST_NODE *mk_if_node(AST_TYPE type,AST_NODE*exp,AST_NODE *if_true,AST_NODE *if_false);
-
-AST_NODE *mk_for_node(AST_TYPE type,AST_NODE *init,AST_NODE *cond,AST_NODE *exp,AST_NODE *stmts);
-
-AST_NODE *mk_bool_node(AST_TYPE type,Boolean value);
+AST_NODE *mk_bool_node(AST_TYPE ,Boolean );
 
 
-AST_NODE *mk_flow_node(AST_TYPE type);
+AST_NODE *mk_flow_node(AST_TYPE);
 
+int check_binary(AST_TYPE);
+int check_unary(AST_TYPE);
 
+/*--------------------------------------------------*/
 
-#define RULE(x,y) printf("%s : %s\n",#x,y);
-#define ERROR 100
-#define SUCCESS 200
-
-
-extern int yylex();
-extern char *yytext;
-extern FILE *yyin;
-extern S_TABLE *sym_tab;
-extern SYM_TABLE *sym_fetch(S_TABLE*,char*);
-extern TOKEN_TYPE cur_token;
-extern int yyleng;
-extern int line;
-extern char *prev_token;
-extern int yylineno;
-extern int line;
-extern void sym_entry(S_TABLE *table,char *id,long double value);
-extern S_TABLE *sym_tab;
-extern S_TABLE *sym_create();
-extern void sym_view(S_TABLE *);
-
+/*---------------- PARSER FUNCTIONS -----------------*/
 
 void    match(TOKEN_TYPE); // match token and move lookahead to next token
 void    *statement();
 void    *assignment();
 void    *expression();
-void    *exp_prime();
+void    *logical_expression();
+void    *logical_expression_prime();
+void    *logical_term();
+void    *logical_term_prime();
+void    *logical_factor();
+void    *conditional_expression();
+void    *conditional_expression_prime();
+void    *Arithmetic_expression();
+void    *Arithmetic_expression_prime();
 void    *term();
 void    *term_prime();
 void    *factor();
@@ -242,5 +278,35 @@ void    *program();
 void    *declaration();
 void    *block();
 long double    eval_ast(AST_NODE*);
+/*------------------------------------------------------*/
+
+
+/*--------------- SHARED FUNCTIONS---------------------*/
+
+
+extern int yylex();
+extern SYM_TABLE *sym_fetch(S_TABLE*,char*);
+extern void sym_entry(S_TABLE *table,char *id,long double value);
+extern S_TABLE *sym_create();
+extern void sym_view(S_TABLE *);
+
+
+/*----------------------------------------------------*/
+
+
+/*-------------- SHARED VARIABLES --------------------*/
+
+extern S_TABLE *sym_tab;
+extern char *yytext;
+extern FILE *yyin;
+extern S_TABLE *sym_tab;
+extern TOKEN_TYPE cur_token;
+extern int yyleng;
+extern int line;
+extern char *prev_token;
+extern int yylineno;
+extern int line;
+
+/*------------------------------------------------------*/
 
 #endif

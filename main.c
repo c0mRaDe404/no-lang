@@ -8,12 +8,15 @@ TOKEN_TYPE cur_token;
 char *prev_token;
 S_TABLE *sym_tab;
 size_t loop_counter = 0;
+SCOPE_STACK *s_ptr;
 
 
 int main(int argc,char **argv){
     FILE *file;
+    SCOPE_STACK s_stack;
+    s_ptr = mk_stack(&s_stack,100);
     sym_tab = sym_create();
-
+    
     if(argc < 2) {
         //printf("usage : calc <file> ");
         

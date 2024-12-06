@@ -1,0 +1,66 @@
+program         -> stmts
+
+stmts           -> stmt stmts | stmt
+
+block           ->   "{" (stmts)? "}"
+
+stmt            -> exp (";")?
+                |  declaration (";")?
+                | "print" "(" exp ")" (";")?
+                |  if-stmt (";")?
+                | loop-stmt(";")?
+                | break-stmt ";"
+                | cont-stmt ";"
+
+
+if-stmt         -> "if" conditional (block)? (else-stmt)?
+else_stmt       -> "else" (block)? 
+
+loop-stmt       -> while-stmt
+                | for-stmt
+
+
+
+for-stmt        -> "for" "(" (declaration|assignment) ";" conditional ";" exp ")" (block)?
+while-stmt      -> "while" conditional (block)?
+
+
+
+
+
+logic              -> logic_prime {"or" logic_prime}
+logic_prime        -> exp {"and" exp}
+
+
+
+
+conditional     -> exp (("==" | "!="| "<" | ">" | "<=" | ">=" ) exp)? 
+
+declaraion      -> "let" ID "="  exp        
+ 
+exp         -> term exp_prime  | logic 
+
+exp_prime   -> "+" term exp_prime 
+            |  "-" term exp_prime
+            | "or"  term exp_prime
+            |  epsilon
+
+term        -> factor term_prime
+
+term_prime  -> "*" factor term_prime
+            |  "/" factor term_prime
+            |   "%" factor term_prime
+            | "and" factor term_prime
+            |  epsilon
+
+unary       -> ( "-" | "+" ) factor
+
+factor      -> NUM              //token
+            |  "(" exp ")"
+            |  unary
+            |  STRING
+            | "not" exp
+
+
+exp_prime - nullable
+term_prime - nullable

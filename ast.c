@@ -6,23 +6,49 @@
 #include <ctype.h>
 
 
+#define FLOW(flow)  (flow != BRK_FLOW && flow != CONT_FLOW)
+#define BINARY(head)   ((head !=NULL) && (check_binary(head->ast_type)))
 
-#define BINARY(head)   head->ast_type == ADD  || head->ast_type == MUL \
-                      || head->ast_type == DIV || head ->ast_type ==SUB \
-                      || head->ast_type == STMT || head->ast_type == DEQ \
-                      || head->ast_type == GT   || head->ast_type == LT   \
-                      || head->ast_type == MOD  || head->ast_type == AND   \
-                      || head->ast_type == OR   || head->ast_type == GEQ    \
-                      || head->ast_type == LEQ  || head->ast_type == NEQ
-
-#define UNARY(head)  (head != NULL) && (head->ast_type == NO || head->ast_type == NOT \
-                     || head->ast_type == U_PLUS || head->ast_type == U_MIN )
+#define UNARY(head)  ((head != NULL) && check_unary(head->ast_type))
 
 #define BINARY_OR_UNARY(head) BINARY(head) || UNARY(head)
 
 FLOW flow = NONE;
 
 
+int check_unary(AST_TYPE type){
+        switch(type){
+            case NO:
+            case NOT:
+            case U_PLUS:
+            case U_MIN:
+                return 1;
+            default:
+                return 0;
+        }
+}
+
+int check_binary(AST_TYPE type){
+        switch(type){
+            case ADD:
+            case MUL:
+            case DIV:
+            case SUB:
+            case STMT:
+            case DEQ:
+            case GT:
+            case LT:
+            case MOD:
+            case AND:
+            case OR:
+            case GEQ:
+            case LEQ:
+            case NEQ:
+                return 1;
+            default:
+                return 0;
+        }
+}
 
 void print_value(AST_TYPE type,void *value){ 
     AST_NODE *node;
@@ -49,11 +75,12 @@ AST_NODE *mk_binary_node(AST_TYPE type,AST_NODE *left,AST_NODE *right){
     return new_node;
 }
 
-AST_NODE *mk_num_node(AST_TYPE type,long double num){
+AST_NODE *mk_num_node(AST_TYPE type,long double num,void *ref){
 
     AST_NODE *new_node = malloc(sizeof(AST_NODE));
     new_node->ast_type = NO;
     new_node->node.Unary.num = num;
+    new_node->node.Unary.ref = ref;
     return new_node;
 }
 
@@ -73,11 +100,12 @@ AST_NODE *mk_unary_node(AST_TYPE type,AST_NODE *factor){
     return new_node;
 }
 
-AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr){
+AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr,S_TABLE *sym_tab){
     AST_NODE *new_node = malloc(sizeof(AST_NODE));
     new_node->ast_type = type;
     new_node->node.Assign.id_name = id;
     new_node->node.Assign.value = expr;
+    new_node->node.Assign.sym_tab = sym_tab;
     return new_node;
 }
 
@@ -130,7 +158,6 @@ long double eval_ast(AST_NODE *root){
     
     AST_NODE *head = root;
     AST_TYPE type;
-    char *temp_ch;
     long double temp_value;
     long double *temp_ptr;
     long double left,right;
@@ -138,16 +165,15 @@ long double eval_ast(AST_NODE *root){
     left_node  = NULL;
     right_node = NULL;
 
-    if(flow == CONT_FLOW) return 0;
-
+    
     if(BINARY(head)){
         left_node = head->node.Binary.left;
         right_node = head->node.Binary.right;
     }
 
 
-    if(left_node != NULL) left = eval_ast(head->node.Binary.left);
-    if(right_node != NULL) right = eval_ast(head->node.Binary.right);
+    if(left_node != NULL && FLOW(flow)) left = eval_ast(head->node.Binary.left);
+    if(right_node != NULL && FLOW(flow)) right = eval_ast(head->node.Binary.right);
 
     type = head->ast_type;
     switch(type){
@@ -193,7 +219,7 @@ long double eval_ast(AST_NODE *root){
             return (left != right);
         case ASSIGN:
             temp_value = eval_ast(head->node.Assign.value);
-            sym_entry(sym_tab,head->node.Assign.id_name,temp_value);          
+            sym_entry(head->node.Assign.sym_tab,head->node.Assign.id_name,temp_value);          
             return temp_value;
         case PRNT:
             #define print_node(ptr) ptr->node.Print.expr
@@ -231,7 +257,7 @@ long double eval_ast(AST_NODE *root){
             #define statement head->node.For.stmts
             
             for(eval_ast(init_stmt);eval_ast(cond_stmt);eval_ast(expr_stmt)){
-                if(statement != NULL && flow != CONT_FLOW) {
+                if(statement != NULL && FLOW(flow)) {
                     eval_ast(statement);
                 }else if(flow == BRK_FLOW){
                     flow = NONE;
@@ -253,7 +279,7 @@ long double eval_ast(AST_NODE *root){
             #define value_node     head->node.Binary.right
 
             while(eval_ast(condition_node)){
-                if(value_node != NULL && flow != CONT_FLOW) {
+                if(value_node != NULL && FLOW(flow)) {
                     eval_ast(value_node);
                 }else if(flow == BRK_FLOW){
                     flow = NONE; 

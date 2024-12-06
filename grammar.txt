@@ -23,37 +23,57 @@ loop-stmt       -> while-stmt
 for-stmt        -> "for" "(" (declaration|assignment) ";" conditional ";" exp ")" (block)?
 while-stmt      -> "while" conditional (block)?
 
-conditional     -> exp (("==" | "<" | ">" ) exp)? 
 
 declaraion      -> "let" ID "="  exp        
  
-//assign          -> ID "=" assign | exp 
-
-            
-
-exp         -> term exp_prime  | logic_op  
-
-exp_prime   -> "+" term exp_prime 
-            |  "-" term exp_prime
-            | "and" term exp_prime
-            | "or"  term exp_prime
-            |  epsilon
-
-term        -> factor term_prime
-
-term_prime  -> "*" factor term_prime
-            |  "/" factor term_prime
-            |   "%" factor term_prime
-            |  epsilon
-
-unary       -> ( "-" | "+" ) factor
-
-factor      -> NUM              //token
-            |  "(" exp ")"
-            |  unary
-            |  STRING
-            | "not" exp
 
 
-exp_prime - nullable
-term_prime - nullable
+expression              -> logical_expr
+
+
+
+
+logical_expr            -> logic_term logic_exp_prime
+logic_exp_prime         -> "or" logic_term logic_exp_prime
+                        | epsilon
+
+logic_term                -> logic_factor logic_term_prime
+logic_term_prime          -> "and" logic_factor logic_term_prime
+                        | epsilon
+
+logic_factor            -> conditional_expr
+                        | not conditional_expr
+
+
+
+
+conditional_expr        -> Arithmetic_exp cond_prime
+conditional_expr_prime  -> c_op Arithmetic_exp cond_expr_prime
+                        | epsilon
+
+
+c_op                    -> ("==" | ">" | "<" | "<=" | ">=" | "!=")
+
+
+
+Arithmetic_expr         -> term exp_prime  
+
+expr_prime              -> "+" term expr_prime 
+                        |  "-" term expr_prime
+                        |  epsilon
+
+term                    -> factor term_prime
+
+term_prime              -> "*" factor term_prime
+                        |  "/" factor term_prime
+                        |   "%" factor term_prime
+                        |  epsilon
+
+unary                   -> ( "-" | "+" ) factor
+
+factor                  -> NUM              //token
+                        |  "(" expression ")"
+                        |  unary
+                        |  STRING
+
+

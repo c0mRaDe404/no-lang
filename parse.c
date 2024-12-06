@@ -5,13 +5,23 @@
 
 extern size_t loop_counter;
 
+extern SCOPE_STACK *s_ptr;
+
 #define DEBUG
 #undef DEBUG
+
+
+
+
+#define EPSILON (NULL);
+#define LOGICAL_OP(token) (token == AND_OP || token == OR_OP || token == NOT_OP)
 
 #define RELATIONAL_OP(token) (token == DOUBLE_EQ || token == G_THAN || token == L_THAN\
                             || token == L_THAN_EQ || token == G_THAN_EQ || token == NOT_EQ)
 #define END_OF_FILE(token) (token == EOS) 
 #define END_OF_STMT(token) (token == CLOSE_CURLY)
+
+
 
 AST_TYPE token_to_ast(TOKEN_TYPE type){
     switch(type){
@@ -45,6 +55,8 @@ AST_TYPE token_to_ast(TOKEN_TYPE type){
             return AND;
         case OR_OP:
             return OR;
+        case NOT_OP:
+            return NOT;
         case TRUE_EXP:
             return TRUE;
         case FALSE_EXP:
@@ -71,13 +83,33 @@ void match(TOKEN_TYPE token) {
 }
 
 
+
+
+
+
+
+
+void *program(){
+    AST_NODE *n1,*n2;
+    #define END(token) (END_OF_FILE(token) || END_OF_STMT(token))
+    
+    if(END(cur_token)) return NULL;
+    n1 = statement();
+    n2 = program();
+    return mk_binary_node(STMT,n1,n2);
+}
+
+
+
 void *block(){
 
     AST_NODE *node = NULL;
     if(cur_token == OPEN_CURLY){
+        sym_tab = push(s_ptr,sym_tab);
         match(OPEN_CURLY);
         if(cur_token != CLOSE_CURLY) node = program();
         match(CLOSE_CURLY);
+        sym_tab = pop(s_ptr);
         return node;
     }else {
         return program();
@@ -85,21 +117,16 @@ void *block(){
     return NULL;
 }
 
-void *program(){
-    AST_NODE *node1,*node2;
-#define END(token) (END_OF_FILE(token) || END_OF_STMT(token))
-    if(END(cur_token)) return NULL;
-    node1 = statement();
-    node2 = program();
-    return mk_binary_node(STMT,node1,node2);
-}
+
+
+
 
 
 void *statement(){
 
-#ifdef DEBUG
+    #ifdef DEBUG
     RULE(STATEMENT,"stmt");
-#endif
+    #endif
 
     AST_NODE *n1,*n2,*n3,*n4;
     AST_TYPE type;
@@ -161,15 +188,14 @@ void *statement(){
                 return mk_flow_node(type);
             }
             return NULL;
+        case OPEN_CURLY:
+            return block();
         default:
-            n1 = expression();
+            n1 = logical_expression();
             match(SEMI_COLON);
             return n1;
     }
 
-    //node = expression();
-    //match(SEMI_COLON);
-    //return node;
 }
 
 
@@ -179,36 +205,226 @@ void *declaration(){
     AST_NODE *node;
     char *id = strndup(yytext,yyleng);
     sym_entry(sym_tab,id,0);
-#ifdef DEBUG
+    #ifdef DEBUG
     RULE(ASSIGN,"assign");
     RULE(ID,yytext);
-#endif
+    #endif
     match(ID);
     match(EQ);
-    return mk_assign_node(ASSIGN,id,expression());
+    return mk_assign_node(ASSIGN,id,Arithmetic_expression(),sym_tab);
 }
 
 
-void *assignment(){
 
-    AST_NODE *node;
-    char *id = strndup(yytext,yyleng);
-    if(sym_check(sym_tab,id)){
-        match(ID);
-        match(EQ);
-        return mk_assign_node(ASSIGN,id,expression());
-    }else return NULL;
-}
+
 
 
 void *expression(){
-#ifdef DEBUG
+
+    return logical_expression();
+}
+
+
+
+void *logical_expression(){
+    #ifdef DEBUG
     RULE(EXPRESSION,"exp");
-#endif
+    #endif
+
+    AST_NODE *n1 = logical_term();
+    AST_NODE *n2 = logical_expression_prime();
+
+    if(n2 == NULL){      
+        return n1;
+    }else{
+        n2->node.Binary.left = n1; 
+        return n2;
+    }
+    return NULL;
+
+
+}
+
+
+void *logical_expression_prime(){
+
+    if(cur_token == OR_OP) {
+
+        TOKEN_TYPE type = cur_token;
+
+        #ifdef DEBUG
+        RULE(SYMBOL,yytext);
+        #endif
+
+        match(type);
+        AST_NODE *n1 = logical_term();
+        AST_NODE *n2 = logical_expression_prime();
+
+        if(n2 == NULL){
+            return mk_binary_node(token_to_ast(type),NULL,n1);
+        }else{
+
+            n2->node.Binary.left = n1;
+            n2 = mk_binary_node(token_to_ast(type),n1,n2);
+            return n2;
+        }
+
+    }else{
+        //expr_prime follow set
+
+        switch(cur_token){
+            case EOS:
+            case SEMI_COLON:
+            case R_PAREN :
+            case OPEN_CURLY:
+                return EPSILON;
+            default:
+                printf("Syntax error at line %d near %s\n",line,prev_token);
+                exit(ERROR);
+        }    }
+
+    #undef check_op
+    #undef find_op_type
+    return NULL;
+
+
+}
+
+
+void *logical_term(){
+    #ifdef DEBUG
+    RULE(TERM,"term");
+    #endif
+    AST_NODE *n1 = logical_factor();
+    AST_NODE *n2 = logical_term_prime();
+    if(n2 == NULL){
+        return n1;
+    }else{
+        n2->node.Binary.left = n1;
+        return n2;
+    }
+    return NULL;
+
+}
+
+void *logical_term_prime(){
+    
+
+    if(cur_token == AND_OP){
+        TOKEN_TYPE type = cur_token;        
+        #ifdef DEBUG
+        RULE(SYMBOL,yytext);
+        #endif
+
+        match(type);
+        AST_NODE *n1 = logical_factor();
+        AST_NODE *n2 = logical_term_prime();
+
+        if(n2 == NULL){
+            return mk_binary_node(token_to_ast(type),NULL,n1);
+        }else{
+            n2->node.Binary.left = n1;
+            n2 = mk_binary_node(token_to_ast(type),n1,n2);
+            return n2;
+        }
+
+    }else{
+
+        //logical term prime follow set
+        switch(cur_token){
+            case EOS:
+            case SEMI_COLON:
+            case R_PAREN:
+            case OPEN_CURLY:
+            case OR_OP :
+                return EPSILON;
+            default:
+                printf("Syntax error at line %d near %s\n",line,prev_token);
+                exit(ERROR);
+        }
+    }
+
+    return NULL;
+
+}
+
+
+void *logical_factor(){
+    TOKEN_TYPE type = cur_token;
+
+    switch(cur_token){
+        case NOT_OP:
+            match(type);
+            return mk_unary_node(token_to_ast(type),conditional_expression());
+        default:
+            return conditional_expression();
+    }
+}
+
+
+
+void *conditional_expression_prime(){
+       if(RELATIONAL_OP(cur_token)){
+        
+        TOKEN_TYPE type = cur_token;
+        match(type);
+        AST_NODE *node1 = Arithmetic_expression();
+        AST_NODE *node2 = conditional_expression_prime();
+
+        if(node2 == NULL){
+            return mk_binary_node(token_to_ast(type),NULL,node1);
+        }else{
+
+            node2->node.Binary.left = node1;
+            node2 = mk_binary_node(token_to_ast(type),node1,node2);
+            return node2;
+        }
+
+    }else {
+        // follow set
+        switch(cur_token){
+            case EOS:
+            case SEMI_COLON:
+            case R_PAREN :
+            case OPEN_CURLY:
+            case AND_OP:
+            case OR_OP:
+            case NOT_OP:
+                return EPSILON;
+            default:
+                printf("Syntax error at line %d near %s\n",line,prev_token);
+                exit(ERROR);
+        }
+
+    }
+}
+
+
+void *conditional_expression(){
+
+    AST_NODE *n1,*n2;
+    n1 = Arithmetic_expression();
+    n2 = conditional_expression_prime();
+
+    if(n2 == NULL){      
+        return n1;
+    }else{
+        n2->node.Binary.left = n1; 
+        return n2;
+    }
+    return NULL;
+}
+
+
+
+
+void *Arithmetic_expression(){
+    #ifdef DEBUG
+    RULE(EXPRESSION,"exp");
+    #endif
 
     AST_NODE *node1 = term();
-    AST_NODE *node2 = exp_prime();
-    TOKEN_TYPE type;
+    AST_NODE *node2 = Arithmetic_expression_prime();
 
     if(node2 == NULL){      
         return node1;
@@ -219,22 +435,25 @@ void *expression(){
     return NULL;
 }
 
-void *exp_prime(){
 
-#define check_op(op) (op==PLUS||op==MINUS||op==OR_OP)
+
+
+void *Arithmetic_expression_prime(){
+
+    #define check_op(op) (op==PLUS||op==MINUS)
 
 
     if(check_op(cur_token)) {
 
         TOKEN_TYPE type = cur_token;
 
-#ifdef DEBUG
+        #ifdef DEBUG
         RULE(SYMBOL,yytext);
-#endif
+        #endif
 
         match(type);
         AST_NODE *node1 = term();
-        AST_NODE *node2 = exp_prime();
+        AST_NODE *node2 = Arithmetic_expression_prime();
 
         if(node2 == NULL){
             return mk_binary_node(token_to_ast(type),NULL,node1);
@@ -258,8 +477,11 @@ void *exp_prime(){
             case G_THAN_EQ:
             case L_THAN_EQ:
             case NOT_EQ:
+            case AND_OP:
+            case OR_OP:
+            case NOT_OP:
             case OPEN_CURLY:
-                return epsilon();
+                return EPSILON;
             default:
                 printf("Syntax error at line %d near %s\n",line,prev_token);
                 exit(ERROR);
@@ -272,9 +494,9 @@ void *exp_prime(){
 
 void *term(){
 
-#ifdef DEBUG
+    #ifdef DEBUG
     RULE(TERM,"term");
-#endif
+    #endif
     AST_NODE *node1 = factor();
     AST_NODE *node2 = term_prime();
     if(node2 == NULL){
@@ -288,13 +510,13 @@ void *term(){
 
 void *term_prime(){
 
-    #define check_op(op) (op==DIVIDE||op==MULTIPLY||op==MODULO || op == AND_OP || RELATIONAL_OP(op))
+    #define check_op(op) (op==DIVIDE||op==MULTIPLY||op==MODULO)
 
     if(check_op(cur_token)){
         TOKEN_TYPE type = cur_token;        
-    #ifdef DEBUG
+        #ifdef DEBUG
         RULE(SYMBOL,yytext);
-    #endif
+        #endif
         match(type);
         AST_NODE *node1 = factor();
         AST_NODE *node2 = term_prime();
@@ -313,12 +535,20 @@ void *term_prime(){
         switch(cur_token){
             case PLUS :
             case MINUS:
+            case DOUBLE_EQ:
+            case G_THAN:
+            case L_THAN:
+            case G_THAN_EQ:
+            case L_THAN_EQ:
+            case NOT_EQ:
+            case AND_OP:
             case OR_OP:
+            case NOT_OP:
             case EOS:
             case SEMI_COLON:
             case R_PAREN:
             case OPEN_CURLY:
-                return epsilon();
+                return EPSILON;
             default:
                 printf("Syntax error at line %d near %s\n",line,prev_token);
                 exit(ERROR);
@@ -332,9 +562,9 @@ void *term_prime(){
 
 void *factor(){
 
-#ifdef DEBUG
+    #ifdef DEBUG
     RULE(FACTOR,"factor");
-#endif
+    #endif
     long double num;
     AST_NODE *node;
     TOKEN_TYPE type;
@@ -347,7 +577,7 @@ void *factor(){
         #endif
         num = atof(yytext);
         match(NUM);
-        return mk_num_node(NO,num); 
+        return mk_num_node(NO,num,NULL); 
         case L_PAREN:
 
         #ifdef DEBUG
@@ -373,14 +603,8 @@ void *factor(){
         case ID:
             match(ID);   //need to make num node;
             table = sym_fetch(sym_tab,prev_token);
-            node = mk_num_node(NO,table->value);
-            node->node.Unary.ref = &table->value; 
+            node = mk_num_node(NO,table->value,&table->value);
             return node;
-        case NOT_OP:
-            type = cur_token;
-            match(type);
-            node = expression();
-            return mk_unary_node(NOT,node);
         case TRUE_EXP:
         case FALSE_EXP:
             #define bool_value(type) (type == TRUE_EXP)? true : false
@@ -399,8 +623,5 @@ void *factor(){
     return NULL;
 }
 
-void *epsilon(){
-    return NULL;
-}
 
 

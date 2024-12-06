@@ -4,6 +4,8 @@
 #include "defs.h"
 #define S_VIEW
 
+extern SCOPE_STACK *s_ptr;
+
 
 S_TABLE *sym_create(){
     S_TABLE *table;
@@ -39,7 +41,7 @@ void sym_entry(S_TABLE *table,char *id,long double value){
         table->sym_table[c]->value = value;
         table->counter++;
     }else if(table->sym_table[c]->next == NULL){
-        if(!sym_check(table,id)){
+        if(!sym_check(table,id,c)){
             SYM_TABLE *t = malloc(sizeof(SYM_TABLE));
             table->sym_table[c]->next = t;
             t->id_name = id;
@@ -50,7 +52,7 @@ void sym_entry(S_TABLE *table,char *id,long double value){
         }
     }else{
         SYM_TABLE *t = table->sym_table[c];
-        if(!sym_check(table,id)){
+        if(!sym_check(table,id,c)){
             while(t->next != NULL){
                 t = t->next;
             }
@@ -69,9 +71,8 @@ void sym_entry(S_TABLE *table,char *id,long double value){
 }
 
 
-int sym_check(S_TABLE *s,char *id){
+int sym_check(S_TABLE *s,char *id,int index){
     
-    int index = hash(id,SYM_TABLE_S);
     SYM_TABLE *entry = s->sym_table[index];
     if(entry == NULL){
         return 0;
@@ -94,8 +95,19 @@ SYM_TABLE *sym_fetch(S_TABLE *s,char *id){
         SYM_TABLE *entry = s->sym_table[index];
 
         if(entry == NULL){
-            printf("line %d : Id '%s' is not defined\n",line,id);
-            exit(0);
+            if(s_ptr->top > 0){
+                #define ENTRY(s,c,i) s->stack[c]->sym_table[i] 
+                size_t counter = s_ptr->top-1;
+                while(entry == NULL){
+                    entry = ENTRY(s_ptr,counter,index);
+                    counter--;
+                }
+             return entry;
+            }else{
+                printf("line %d : Id '%s' is not defined\n",line,id);
+                exit(0);
+            }
+            
         }else if(!strcmp(entry->id_name,id)){
             return entry;
         }else{
