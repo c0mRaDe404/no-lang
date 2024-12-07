@@ -89,38 +89,60 @@ int sym_check(S_TABLE *s,char *id,int index){
     return 0;
 }
 
-SYM_TABLE *sym_fetch(S_TABLE *s,char *id){
+
+SYM_DATA *mk_sym_data(S_TABLE *sym_table,SYM_TABLE *entry){
+        SYM_DATA *n = malloc(sizeof(SYM_DATA));
+        n->entry = entry;
+        n->sym_table = sym_table;
+        return n;
+}
+
+
+SYM_DATA *sym_fetch(S_TABLE *s,char *id){
         
         int index = hash(id,SYM_TABLE_S);
+        
         SYM_TABLE *entry = s->sym_table[index];
 
         if(entry == NULL){
             if(s_ptr->top > 0){
-                #define ENTRY(s,c,i) s->stack[c]->sym_table[i] 
-                size_t counter = s_ptr->top-1;
-                while(entry == NULL){
-                    entry = ENTRY(s_ptr,counter,index);
-                    counter--;
+
+                #define ENTRY(s,c,i) s->stack[c]->sym_table[i]
+                int counter = s_ptr->top-1;
+
+                while(counter >= 0){
+                    if(entry == NULL){
+                        entry = ENTRY(s_ptr,counter,index);
+                        counter--;
+                    }else {
+                        return mk_sym_data(s_ptr->stack[counter+1],entry);
+                    }
                 }
-             return entry;
+
+                if(entry != NULL){
+                    return mk_sym_data(s_ptr->stack[counter+1],entry);
+                }else {
+                    printf("line %d : Id '%s' is not defined\n",line,id);
+                    exit(0);
+                }
             }else{
                 printf("line %d : Id '%s' is not defined\n",line,id);
                 exit(0);
-            }
-            
+            }    
         }else if(!strcmp(entry->id_name,id)){
-            return entry;
+            return mk_sym_data(s,entry);
         }else{
             SYM_TABLE *head = entry;
             while(head->next != NULL){
                 if(head->id_name == id) 
-                     return head;
+                     return mk_sym_data(s,head);
                 head = head->next;             
             }
             printf("line %d : Id '%s' is not defined\n",line,id);
             exit(0);
         }
 }
+
 
 void sym_view(S_TABLE *s){
 

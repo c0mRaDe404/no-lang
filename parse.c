@@ -211,10 +211,17 @@ void *declaration(){
     #endif
     match(ID);
     match(EQ);
-    return mk_assign_node(ASSIGN,id,Arithmetic_expression(),sym_tab);
+    return mk_assign_node(ASSIGN,id,expression(),sym_tab);
 }
 
 
+void *assignment(){
+        char *id = prev_token;
+        SYM_DATA *s_tab;
+        match(EQ);
+        s_tab = sym_fetch(sym_tab,id);
+        return mk_assign_node(ASSIGN,id,expression(),s_tab->sym_table);
+}
 
 
 
@@ -565,19 +572,21 @@ void *factor(){
     #ifdef DEBUG
     RULE(FACTOR,"factor");
     #endif
-    long double num;
+    long double *num;
     AST_NODE *node;
     TOKEN_TYPE type;
-    SYM_TABLE *table;
+    SYM_DATA *s_tab;
+    
     switch(cur_token){
         case NUM:
 
         #ifdef DEBUG
         RULE(NUMBER,yytext);
         #endif
-        num = atof(yytext);
+        num = malloc(sizeof(long double));
+        *num = atof(yytext);
         match(NUM);
-        return mk_num_node(NO,num,NULL); 
+        return mk_num_node(NO,*num,num); 
         case L_PAREN:
 
         #ifdef DEBUG
@@ -602,8 +611,9 @@ void *factor(){
             return mk_unary_node((type == PLUS)? U_PLUS:U_MIN,node);
         case ID:
             match(ID);   //need to make num node;
-            table = sym_fetch(sym_tab,prev_token);
-            node = mk_num_node(NO,table->value,&table->value);
+            if(cur_token == EQ) return assignment();
+            s_tab = sym_fetch(sym_tab,prev_token);
+            node = mk_num_node(NO,s_tab->entry->value,&s_tab->entry->value);
             return node;
         case TRUE_EXP:
         case FALSE_EXP:

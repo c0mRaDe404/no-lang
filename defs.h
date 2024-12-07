@@ -122,11 +122,16 @@ typedef struct{
 }S_TABLE;
 
 
+typedef struct{
+    S_TABLE *sym_table;
+    SYM_TABLE *entry;
+}SYM_DATA;
+
 size_t      hash(char*,size_t);
 S_TABLE     *sym_create();
 void        sym_entry(S_TABLE*,char*,long double);
 
-SYM_TABLE   *sym_fetch(S_TABLE*,char*);
+SYM_DATA   *sym_fetch(S_TABLE*,char*);
 
 int         sym_check(S_TABLE *,char *,int);
 void        sym_update(void *,void *);
@@ -144,6 +149,7 @@ void        sym_update(void *,void *);
 
 typedef struct AST_NODE{
     AST_TYPE ast_type;
+    SYM_DATA *sym_data;
     union{
 
         struct {
@@ -162,8 +168,7 @@ typedef struct AST_NODE{
 
         struct{
             char *id_name;
-            struct AST_NODE *value;
-            S_TABLE *sym_tab; 
+            struct AST_NODE *value; 
         }Assign;
 
         struct Program{
@@ -277,6 +282,7 @@ void    *epsilon();
 void    *program();
 void    *declaration();
 void    *block();
+void    *check_assign();
 long double    eval_ast(AST_NODE*);
 /*------------------------------------------------------*/
 
@@ -285,7 +291,7 @@ long double    eval_ast(AST_NODE*);
 
 
 extern int yylex();
-extern SYM_TABLE *sym_fetch(S_TABLE*,char*);
+extern SYM_DATA *sym_fetch(S_TABLE*,char*);
 extern void sym_entry(S_TABLE *table,char *id,long double value);
 extern S_TABLE *sym_create();
 extern void sym_view(S_TABLE *);

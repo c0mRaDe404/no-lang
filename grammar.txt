@@ -4,11 +4,12 @@ block       ->   "{" (stmts)? "}"
 
 stmts       -> stmt stmts | stmt
 
-stmt            -> exp (";")?
-                |  declaration (";")?
-                | "print" "(" exp ")" (";")?
-                |  if-stmt (";")?
-                | loop-stmt(";")?
+stmt            -> exp ";"
+                |  declaration ";"
+                | assignment ";"
+                | "print" "(" exp ")" ";"
+                |  if-stmt ";"
+                | loop-stmt ";"
                 | break-stmt ";"
                 | cont-stmt ";"
 
@@ -25,7 +26,11 @@ while-stmt      -> "while" conditional (block)?
 
 
 declaraion      -> "let" ID "="  exp        
- 
+
+check_assign              -> ID (assignment | epsilon) 
+
+
+assignment      ->  (:=|=) exp;
 
 
 expression              -> logical_expr
@@ -75,5 +80,6 @@ factor                  -> NUM              //token
                         |  "(" expression ")"
                         |  unary
                         |  STRING
+                        |  id
 
 

@@ -8,10 +8,10 @@
 
 #define FLOW(flow)  (flow != BRK_FLOW && flow != CONT_FLOW)
 #define BINARY(head)   ((head !=NULL) && (check_binary(head->ast_type)))
-
+#define LOGIC(head)    ((head->ast_type == AND) || (head->ast_type == OR))
 #define UNARY(head)  ((head != NULL) && check_unary(head->ast_type))
 
-#define BINARY_OR_UNARY(head) BINARY(head) || UNARY(head)
+#define BINARY_OR_UNARY(head) (UNARY(head) || BINARY(head) || LOGIC(head))
 
 FLOW flow = NONE;
 
@@ -39,8 +39,8 @@ int check_binary(AST_TYPE type){
             case GT:
             case LT:
             case MOD:
-            case AND:
-            case OR:
+            //case AND:
+            //case OR:
             case GEQ:
             case LEQ:
             case NEQ:
@@ -102,10 +102,13 @@ AST_NODE *mk_unary_node(AST_TYPE type,AST_NODE *factor){
 
 AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr,S_TABLE *sym_tab){
     AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->sym_data = malloc(sizeof(SYM_DATA));
     new_node->ast_type = type;
     new_node->node.Assign.id_name = id;
     new_node->node.Assign.value = expr;
-    new_node->node.Assign.sym_tab = sym_tab;
+
+    if(sym_tab != NULL) 
+        new_node->sym_data->sym_table = sym_tab;
     return new_node;
 }
 
@@ -202,9 +205,17 @@ long double eval_ast(AST_NODE *root){
         case NOT:
             return !(eval_ast(head->node.Signed.factor));
         case AND:
-            return (left && right);
-        case OR:
-            return (left || right);
+            left = eval_ast(head->node.Binary.left);
+            if(left) 
+                return eval_ast(head->node.Binary.right);
+            else 
+                return left;
+        case OR:  
+            left = eval_ast(head->node.Binary.left);
+            if(left)
+                return left;
+            else 
+                return eval_ast(head->node.Binary.right);
         case DEQ:
             return (left == right);    
         case GT:
@@ -219,7 +230,7 @@ long double eval_ast(AST_NODE *root){
             return (left != right);
         case ASSIGN:
             temp_value = eval_ast(head->node.Assign.value);
-            sym_entry(head->node.Assign.sym_tab,head->node.Assign.id_name,temp_value);          
+            sym_entry(head->sym_data->sym_table,head->node.Assign.id_name,temp_value);          
             return temp_value;
         case PRNT:
             #define print_node(ptr) ptr->node.Print.expr
