@@ -16,6 +16,8 @@ struct AST_NODE;
 typedef enum {
     EOS,
     NUM,
+    INTEGER,
+    FLOAT,
     PLUS,
     MINUS,
     MULTIPLY,
@@ -24,6 +26,7 @@ typedef enum {
     L_PAREN,
     R_PAREN,
     EQ,
+    COLON,
     SEMI_COLON,
     AND_OP,
     OR_OP,
@@ -48,6 +51,8 @@ typedef enum {
     FOR_STMT,
     BREAK,
     CONTINUE,
+    PLUS_PLUS,
+    MINUS_MINUS,
     LIST_STMT
 }TOKEN_TYPE;
 
@@ -63,6 +68,8 @@ typedef enum{
     U_MIN,
     ASSIGN,
     NO,
+    INT,
+    FLT,
     PRNT,
     STR,
     DEQ,
@@ -80,6 +87,10 @@ typedef enum{
     WHILE,
     BRK,
     CONT,
+    PR_INC,
+    PR_DEC,
+    PO_INC,
+    PO_DEC,
     TRUE,
     FALSE,
     LIST
@@ -101,6 +112,54 @@ typedef enum{
 /*-----------------------------------------------------------*/
 
 
+/*--------------- TYPES -----------------------------------*/
+
+
+typedef enum{
+    NONE_TYPE,
+    INT_TYPE,
+    FLOAT_TYPE,
+    BOOL_TYPE,
+    STR_TYPE,
+}TYPE;
+
+
+
+TYPE get_type(TOKEN_TYPE);
+
+typedef struct{
+    TYPE type;
+
+    union{
+        struct {
+            int int_val;
+            int *ref;
+        }Int;
+
+        struct {
+            long double float_val;
+            long double  *ref;
+        }Float;
+
+        struct {
+            Boolean bool_val;
+        }Bool;
+
+        struct{
+            char *string_val;
+        }String;
+
+    }value;
+
+}VALUE;
+
+TYPE ast_to_type(AST_TYPE type);
+VALUE *mk_value(TYPE,long double,void *);
+/*---------------------------------------------------------*/
+
+
+
+
 /*----------------- SYMBOL TABLE ---------------------------*/
 
 
@@ -110,6 +169,7 @@ typedef enum{
 
 typedef struct SYM_TABLE{
     char *id_name;
+    TYPE type;
     long double value;
     long double *ref;
     struct AST_NODE *value_ptr;
@@ -129,7 +189,7 @@ typedef struct{
 
 size_t      hash(char*,size_t);
 S_TABLE     *sym_create();
-void        sym_entry(S_TABLE*,char*,long double);
+SYM_TABLE   *sym_entry(S_TABLE*,char*,long double);
 
 SYM_DATA   *sym_fetch(S_TABLE*,char*);
 
@@ -150,29 +210,30 @@ void        sym_update(void *,void *);
 typedef struct AST_NODE{
     AST_TYPE ast_type;
     SYM_DATA *sym_data;
+
     union{
 
         struct {
-            struct AST_NODE *left;
-            struct AST_NODE *right;
+            struct AST_NODE *left; //   left value
+            struct AST_NODE *right; //  right value
         }Binary;
 
         struct{
-            long double *ref;
-            long double num;
-        }Unary;
+            long double *ref; // address of the value
+            long double num; // actual value
+        }Number; // Number
 
         struct{
-            struct AST_NODE *factor;
-        }Signed;
+            struct AST_NODE *factor; // Factor ast_node
+        }Unary; // Unary
 
         struct{
-            char *id_name;
-            struct AST_NODE *value; 
+            char *id_name; // identifier's name
+            struct AST_NODE *value;  // value ast_node
         }Assign;
 
         struct Program{
-            struct AST_NODE *node;
+            struct AST_NODE *node; 
             struct Program  *stmt;
         }Stmt;
 
@@ -283,7 +344,7 @@ void    *program();
 void    *declaration();
 void    *block();
 void    *check_assign();
-long double    eval_ast(AST_NODE*);
+long double eval_ast(AST_NODE*);
 /*------------------------------------------------------*/
 
 
@@ -292,7 +353,7 @@ long double    eval_ast(AST_NODE*);
 
 extern int yylex();
 extern SYM_DATA *sym_fetch(S_TABLE*,char*);
-extern void sym_entry(S_TABLE *table,char *id,long double value);
+extern SYM_TABLE *sym_entry(S_TABLE *table,char *id,long double value);
 extern S_TABLE *sym_create();
 extern void sym_view(S_TABLE *);
 

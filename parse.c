@@ -65,6 +65,12 @@ AST_TYPE token_to_ast(TOKEN_TYPE type){
             return BRK;
         case CONTINUE:
             return CONT;
+        case INTEGER:
+            return INT;
+        case FLOAT:
+            return FLT;
+        case STRING:
+            return STR;
         default:
             return 0;
     }
@@ -157,6 +163,7 @@ void *statement(){
             match(FOR_STMT);
             loop_counter++;
             match(L_PAREN);
+            sym_tab = push(s_ptr,sym_tab);
             if(cur_token != SEMI_COLON) 
                 n1 = declaration();
             match(SEMI_COLON);
@@ -164,10 +171,11 @@ void *statement(){
                 n2 = expression();
             match(SEMI_COLON);
             if(cur_token != R_PAREN)    
-                n3 = declaration();
+                n3 = expression();
             match(R_PAREN);
             n4 = block();
             loop_counter--;
+            sym_tab = pop(s_ptr);
             return mk_for_node(FOR,n1,n2,n3,n4);
         case WHILE_STMT:
             match(WHILE_STMT);
@@ -203,14 +211,25 @@ void *declaration(){
 
     match(LET);
     AST_NODE *node;
+    SYM_TABLE *entry;
+    TYPE sym_type;
     char *id = strndup(yytext,yyleng);
-    sym_entry(sym_tab,id,0);
+    entry = sym_entry(sym_tab,id,0);
     #ifdef DEBUG
     RULE(ASSIGN,"assign");
     RULE(ID,yytext);
     #endif
     match(ID);
+    if(cur_token == COLON){
+        match(COLON);
+        sym_type = get_type(cur_token);
+        entry->type = sym_type;
+        match(cur_token);
+    }else if(cur_token == SEMI_COLON){
+        return mk_assign_node(ASSIGN,id,NULL,sym_tab);
+    }
     match(EQ);
+
     return mk_assign_node(ASSIGN,id,expression(),sym_tab);
 }
 
@@ -578,15 +597,28 @@ void *factor(){
     SYM_DATA *s_tab;
     
     switch(cur_token){
-        case NUM:
+        case   FLOAT:
+        case INTEGER:
 
         #ifdef DEBUG
         RULE(NUMBER,yytext);
         #endif
         num = malloc(sizeof(long double));
         *num = atof(yytext);
-        match(NUM);
-        return mk_num_node(NO,*num,num); 
+
+        switch(cur_token){
+            case FLOAT:
+                match(FLOAT);
+                return mk_num_node(token_to_ast(FLOAT),*num,num); 
+                break;
+            case INTEGER:
+                match(INTEGER);
+                return mk_num_node(token_to_ast(INTEGER),*num,num); 
+            default:
+                break;
+        }
+        return NULL;
+
         case L_PAREN:
 
         #ifdef DEBUG

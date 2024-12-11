@@ -25,7 +25,9 @@ for-stmt        -> "for" "(" (declaration|assignment) ";" conditional ";" exp ")
 while-stmt      -> "while" conditional (block)?
 
 
-declaraion      -> "let" ID "="  exp        
+declaration      -> "let" ID (":" type)? "="  exp  
+
+type             -> INTEGER | FLOAT  | BOOL | STRING  //tokens
 
 check_assign              -> ID (assignment | epsilon) 
 

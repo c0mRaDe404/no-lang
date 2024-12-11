@@ -31,7 +31,7 @@ size_t hash(char *string,size_t m_val){
     return counter;
 }
 
-void sym_entry(S_TABLE *table,char *id,long double value){
+SYM_TABLE *sym_entry(S_TABLE *table,char *id,long double value){
    
 
     size_t c = hash(id,SYM_TABLE_S);
@@ -40,6 +40,7 @@ void sym_entry(S_TABLE *table,char *id,long double value){
         table->sym_table[c]->id_name = strdup(id);
         table->sym_table[c]->value = value;
         table->counter++;
+        return table->sym_table[c];
     }else if(table->sym_table[c]->next == NULL){
         if(!sym_check(table,id,c)){
             SYM_TABLE *t = malloc(sizeof(SYM_TABLE));
@@ -47,8 +48,10 @@ void sym_entry(S_TABLE *table,char *id,long double value){
             t->id_name = id;
             t->value = value;
             t->next = NULL;
+            return table->sym_table[c];
         }else{
             table->sym_table[c]->value = value;
+            return table->sym_table[c];
         }
     }else{
         SYM_TABLE *t = table->sym_table[c];
@@ -60,11 +63,14 @@ void sym_entry(S_TABLE *table,char *id,long double value){
             t->next->id_name = id;
             t->next->value = value;
             t->next->next = NULL;
+            return t;
         }else{
-            while(t->next->id_name != id){
+            //t->id_name != id  
+            while((strcmp(t->id_name,id) != 0)){
                 t = t->next;
             }
             t->value = value;
+            return t;
         }
 
     }
@@ -132,14 +138,15 @@ SYM_DATA *sym_fetch(S_TABLE *s,char *id){
         }else if(!strcmp(entry->id_name,id)){
             return mk_sym_data(s,entry);
         }else{
-            SYM_TABLE *head = entry;
-            while(head->next != NULL){
-                if(head->id_name == id) 
-                     return mk_sym_data(s,head);
-                head = head->next;             
+            SYM_TABLE *cur_entry = entry;
+            while(cur_entry != NULL){
+                if(!strcmp(cur_entry->id_name,id)) 
+                     return mk_sym_data(s,cur_entry);
+                cur_entry = cur_entry->next;             
             }
             printf("line %d : Id '%s' is not defined\n",line,id);
             exit(0);
+
         }
 }
 
@@ -163,4 +170,6 @@ void sym_view(S_TABLE *s){
         }
     }
 }
+
+
 
