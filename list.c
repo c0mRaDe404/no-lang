@@ -5,9 +5,9 @@
 
 #define INIT_SIZE 4
 
-#define LIST(ast) (ast->node.List)
-#define COUNTER(arr) (arr->node.List.size)
-#define CAP(arr) (arr->node.List.capacity)
+#define LIST(ast) (ast->List)
+#define COUNTER(arr) (arr->List.size)
+#define CAP(arr) (arr->List.capacity)
 
 void *allocate_list(AST_NODE *arr_node){
         

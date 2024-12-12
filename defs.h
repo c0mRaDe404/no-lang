@@ -149,9 +149,10 @@ typedef struct{
             char *string_val;
         }String;
 
-    }value;
+    };
 
 }VALUE;
+
 
 TYPE ast_to_type(AST_TYPE type);
 VALUE *mk_value(TYPE,long double,void *);
@@ -172,8 +173,11 @@ typedef struct SYM_TABLE{
     TYPE type;
     long double value;
     long double *ref;
-    struct AST_NODE *value_ptr;
+
+    VALUE *Value;
+
     struct SYM_TABLE *next;
+    //struct AST_NODE *value_ptr;
 }SYM_TABLE;
 
 typedef struct{
@@ -213,15 +217,12 @@ typedef struct AST_NODE{
 
     union{
 
+        VALUE *Value;
+
         struct {
             struct AST_NODE *left; //   left value
             struct AST_NODE *right; //  right value
         }Binary;
-
-        struct{
-            long double *ref; // address of the value
-            long double num; // actual value
-        }Number; // Number
 
         struct{
             struct AST_NODE *factor; // Factor ast_node
@@ -231,21 +232,6 @@ typedef struct AST_NODE{
             char *id_name; // identifier's name
             struct AST_NODE *value;  // value ast_node
         }Assign;
-
-        struct Program{
-            struct AST_NODE *node; 
-            struct Program  *stmt;
-        }Stmt;
-
-        struct {
-            char *keyword;
-            struct AST_NODE *expr;
-        }Print;
-
-        struct {
-            char *string;
-            size_t len;
-        }Str;
         
         struct {
             struct AST_NODE *exp;
@@ -260,16 +246,34 @@ typedef struct AST_NODE{
             struct AST_NODE *stmts;
         }For;
 
+
+        struct {
+            char *keyword;
+            struct AST_NODE *expr;
+        }Print;
+
+
+       
+        struct{
+            long double *ref; // address of the value
+            long double num; // actual value
+        }Number; // Number
+
+        struct {
+            char *string;
+            size_t len;
+        }Str;
+        
         struct {
             Boolean value;
         }Bool;
-        
-        struct{
+
+        struct {
             struct AST_NODE **elements;
             size_t size;
             size_t capacity;
         }List;
-    }node;
+    };
 
 }AST_NODE;
 
@@ -313,6 +317,9 @@ AST_NODE *mk_for_node(AST_TYPE,AST_NODE *,AST_NODE *,AST_NODE *,AST_NODE *);
 
 AST_NODE *mk_bool_node(AST_TYPE ,Boolean );
 
+AST_NODE *mk_float_node(AST_TYPE type,long double num,long double *ref);
+
+AST_NODE *mk_int_node(AST_TYPE type,int num,int *ref);
 
 AST_NODE *mk_flow_node(AST_TYPE);
 

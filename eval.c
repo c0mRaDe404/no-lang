@@ -20,7 +20,7 @@ void print_value(AST_TYPE type,void *value){
             break;
         case STR:
             node = (AST_NODE*) value;
-            fprintf(stdout,"%s\n",node->node.Str.string);
+            fprintf(stdout,"%s\n",node->Str.string);
             break;
         default:
             break;
@@ -46,31 +46,31 @@ long double eval_ast(AST_NODE *root){
 
     
     if(BINARY(head)){
-        left_node = head->node.Binary.left;
-        right_node = head->node.Binary.right;
+        left_node = head->Binary.left;
+        right_node = head->Binary.right;
     }
 
 
-    if(left_node != NULL && FLOW(flow)) left = eval_ast(head->node.Binary.left);
-    if(right_node != NULL && FLOW(flow)) right = eval_ast(head->node.Binary.right);
+    if(left_node != NULL && FLOW(flow)) left = eval_ast(head->Binary.left);
+    if(right_node != NULL && FLOW(flow)) right = eval_ast(head->Binary.right);
 
     type = head->ast_type;
     switch(type){
         case NO:
         case INT:
         case FLT:
-            #define val_r(h) h->node.Number.ref
-            #define val(h) h->node.Number.num
+            #define val_r(h) h->Number.ref
+            #define val(h) h->Number.num
 
-            if(head->node.Number.ref != NULL){
-                return *(head->node.Number.ref);
+            if(head->Number.ref != NULL){
+                return *(head->Number.ref);
             }else{
-                return head->node.Number.num;
+                return head->Number.num;
             }
         case TRUE:
-            return (Boolean) head->node.Bool.value;
+            return (Boolean) head->Bool.value;
         case FALSE:
-            return (Boolean)head->node.Bool.value;
+            return (Boolean)head->Bool.value;
         case ADD:
             return (left+right);
         case SUB:
@@ -82,23 +82,23 @@ long double eval_ast(AST_NODE *root){
         case MOD:
             return ((int)left % (int)right);
         case U_MIN:
-            return -(eval_ast(head->node.Unary.factor));
+            return -(eval_ast(head->Unary.factor));
         case U_PLUS:
-            return eval_ast(head->node.Unary.factor);
+            return eval_ast(head->Unary.factor);
         case NOT:
-            return !(eval_ast(head->node.Unary.factor));
+            return !(eval_ast(head->Unary.factor));
         case AND:
-            left = eval_ast(head->node.Binary.left);
+            left = eval_ast(head->Binary.left);
             if(left) 
-                return eval_ast(head->node.Binary.right);
+                return eval_ast(head->Binary.right);
             else 
                 return left;
         case OR:  
-            left = eval_ast(head->node.Binary.left);
+            left = eval_ast(head->Binary.left);
             if(left)
                 return left;
             else 
-                return eval_ast(head->node.Binary.right);
+                return eval_ast(head->Binary.right);
         case DEQ:
             return (left == right);    
         case GT:
@@ -112,14 +112,14 @@ long double eval_ast(AST_NODE *root){
         case NEQ:
             return (left != right);
         case ASSIGN:
-            #define value(head) head->node.Assign.value
+            #define value(head) head->Assign.value
             if(value(head)!= NULL){
             temp_value = eval_ast(value(head));
-            sym_entry(head->sym_data->sym_table,head->node.Assign.id_name,temp_value);
+            sym_entry(head->sym_data->sym_table,head->Assign.id_name,temp_value);
             }          
             return temp_value;
         case PRNT:
-            #define print_node(ptr) ptr->node.Print.expr
+            #define print_node(ptr) ptr->Print.expr
 
             if(BINARY_OR_UNARY(print_node(head))){
                 temp_ptr = malloc(sizeof(long double));
@@ -127,15 +127,15 @@ long double eval_ast(AST_NODE *root){
                 print_value(NO,temp_ptr);
                 return temp_value;
             }else if(print_node(head)->ast_type == STR){
-                #define str_node(head) print_node(head)->node.Str 
+                #define str_node(head) print_node(head)->Str 
                 print_value(STR,print_node(head));
             }
             #undef print_node
             return 1;
         case IF:
-            #define condition_node head->node.If.exp
-            #define true_node     head->node.If.left
-            #define false_node    head->node.If.right
+            #define condition_node head->If.exp
+            #define true_node     head->If.left
+            #define false_node    head->If.right
             if(eval_ast(condition_node)){ 
                 if(true_node != NULL) 
                     return eval_ast(true_node);
@@ -148,10 +148,10 @@ long double eval_ast(AST_NODE *root){
             #undef false_node
             return 1;
         case FOR:
-            #define init_stmt head->node.For.init
-            #define cond_stmt head->node.For.cond
-            #define expr_stmt head->node.For.exp
-            #define statement head->node.For.stmts
+            #define init_stmt head->For.init
+            #define cond_stmt head->For.cond
+            #define expr_stmt head->For.exp
+            #define statement head->For.stmts
             
             for(eval_ast(init_stmt);eval_ast(cond_stmt);eval_ast(expr_stmt)){
                 if(statement != NULL && FLOW(flow)) {
@@ -172,8 +172,8 @@ long double eval_ast(AST_NODE *root){
             #undef expr_stmt 
             #undef statement     
         case WHILE:
-            #define condition_node head->node.Binary.left
-            #define value_node     head->node.Binary.right
+            #define condition_node head->Binary.left
+            #define value_node     head->Binary.right
 
             while(eval_ast(condition_node)){
                 if(value_node != NULL && FLOW(flow)) {

@@ -263,7 +263,7 @@ void *logical_expression(){
     if(n2 == NULL){      
         return n1;
     }else{
-        n2->node.Binary.left = n1; 
+        n2->Binary.left = n1; 
         return n2;
     }
     return NULL;
@@ -290,7 +290,7 @@ void *logical_expression_prime(){
             return mk_binary_node(token_to_ast(type),NULL,n1);
         }else{
 
-            n2->node.Binary.left = n1;
+            n2->Binary.left = n1;
             n2 = mk_binary_node(token_to_ast(type),n1,n2);
             return n2;
         }
@@ -326,7 +326,7 @@ void *logical_term(){
     if(n2 == NULL){
         return n1;
     }else{
-        n2->node.Binary.left = n1;
+        n2->Binary.left = n1;
         return n2;
     }
     return NULL;
@@ -349,7 +349,7 @@ void *logical_term_prime(){
         if(n2 == NULL){
             return mk_binary_node(token_to_ast(type),NULL,n1);
         }else{
-            n2->node.Binary.left = n1;
+            n2->Binary.left = n1;
             n2 = mk_binary_node(token_to_ast(type),n1,n2);
             return n2;
         }
@@ -401,7 +401,7 @@ void *conditional_expression_prime(){
             return mk_binary_node(token_to_ast(type),NULL,node1);
         }else{
 
-            node2->node.Binary.left = node1;
+            node2->Binary.left = node1;
             node2 = mk_binary_node(token_to_ast(type),node1,node2);
             return node2;
         }
@@ -435,7 +435,7 @@ void *conditional_expression(){
     if(n2 == NULL){      
         return n1;
     }else{
-        n2->node.Binary.left = n1; 
+        n2->Binary.left = n1; 
         return n2;
     }
     return NULL;
@@ -455,7 +455,7 @@ void *Arithmetic_expression(){
     if(node2 == NULL){      
         return node1;
     }else{
-        node2->node.Binary.left = node1; 
+        node2->Binary.left = node1; 
         return node2;
     }
     return NULL;
@@ -485,7 +485,7 @@ void *Arithmetic_expression_prime(){
             return mk_binary_node(token_to_ast(type),NULL,node1);
         }else{
 
-            node2->node.Binary.left = node1;
+            node2->Binary.left = node1;
             node2 = mk_binary_node(token_to_ast(type),node1,node2);
             return node2;
         }
@@ -528,7 +528,7 @@ void *term(){
     if(node2 == NULL){
         return node1;
     }else{
-        node2->node.Binary.left = node1;
+        node2->Binary.left = node1;
         return node2;
     }
     return NULL;
@@ -550,7 +550,7 @@ void *term_prime(){
         if(node2 == NULL){
             return mk_binary_node(token_to_ast(type),NULL,node1);
         }else{
-            node2->node.Binary.left = node1;
+            node2->Binary.left = node1;
             node2 = mk_binary_node(token_to_ast(type),node1,node2);
             return node2;
         }
@@ -597,50 +597,52 @@ void *factor(){
     SYM_DATA *s_tab;
     
     switch(cur_token){
-        case   FLOAT:
-        case INTEGER:
+        case   FLOAT:{
 
-        #ifdef DEBUG
-        RULE(NUMBER,yytext);
-        #endif
-        num = malloc(sizeof(long double));
-        *num = atof(yytext);
+            num = malloc(sizeof(long double));
+            *num = atof(yytext);
 
-        switch(cur_token){
-            case FLOAT:
-                match(FLOAT);
-                return mk_num_node(token_to_ast(FLOAT),*num,num); 
-                break;
-            case INTEGER:
-                match(INTEGER);
-                return mk_num_node(token_to_ast(INTEGER),*num,num); 
-            default:
-                break;
+            match(FLOAT);
+            return mk_float_node(token_to_ast(FLOAT),*num,num); 
         }
-        return NULL;
+        case INTEGER:{
 
-        case L_PAREN:
+            #ifdef DEBUG
+            RULE(NUMBER,yytext);
+            #endif
 
-        #ifdef DEBUG
-        RULE(L_PAREN,yytext);
-        #endif
+            num = malloc(sizeof(long double));
+            *num = atof(yytext);
 
-        match(L_PAREN);
-        node = expression();
+            match(INTEGER);
+            return mk_num_node(token_to_ast(INTEGER),*num,num); 
+        
+        }
+        case L_PAREN:{
 
-        #ifdef DEBUG
-        RULE(R_PAREN,yytext);
-        #endif
+            #ifdef DEBUG
+            RULE(L_PAREN,yytext);
+            #endif
 
-        match(R_PAREN);
-        return node;
+            match(L_PAREN);
+            node = expression();
 
+            #ifdef DEBUG
+            RULE(R_PAREN,yytext);
+            #endif
+
+            match(R_PAREN);
+            return node;
+        }
         case PLUS:
+            match(PLUS);
+            node = expression();
+            return mk_unary_node(U_PLUS,node);
+
         case MINUS:
-            type = (cur_token == PLUS) ? PLUS:MINUS;
-            match(type);
-            node = factor();
-            return mk_unary_node((type == PLUS)? U_PLUS:U_MIN,node);
+            match(MINUS);
+            node = expression();
+            return mk_unary_node(U_MIN,node);
         case ID:
             match(ID);   //need to make num node;
             if(cur_token == EQ) return assignment();
