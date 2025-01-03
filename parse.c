@@ -220,14 +220,6 @@ void *declaration(){
     RULE(ID,yytext);
     #endif
     match(ID);
-    if(cur_token == COLON){
-        match(COLON);
-        sym_type = get_type(cur_token);
-        entry->type = sym_type;
-        match(cur_token);
-    }else if(cur_token == SEMI_COLON){
-        return mk_assign_node(ASSIGN,id,NULL,sym_tab);
-    }
     match(EQ);
 
     return mk_assign_node(ASSIGN,id,expression(),sym_tab);
@@ -597,7 +589,7 @@ void *factor(){
     SYM_DATA *s_tab;
     
     switch(cur_token){
-        case   FLOAT:{
+        case FLOAT:{
 
             num = malloc(sizeof(long double));
             *num = atof(yytext);
