@@ -381,6 +381,11 @@ extern char *prev_token;
 extern int yylineno;
 extern int line;
 
+/* parser.c */
+
+extern size_t loop_counter;
+extern SCOPE_STACK *s_ptr;
+
 /*------------------------------------------------------*/
 
 #endif

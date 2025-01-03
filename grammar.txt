@@ -1,87 +1,53 @@
-program     -> stmts
+program         ::= stmts
 
-block       ->   "{" (stmts)? "}"
+block           ::= "{" (stmts)? "}"
 
-stmts       -> stmt stmts | stmt
+stmts           ::= stmt stmts | stmt
 
-stmt            -> exp ";"
-                |  declaration ";"
-                | assignment ";"
-                | "print" "(" exp ")" ";"
-                |  if-stmt ";"
-                | loop-stmt ";"
-                | break-stmt ";"
-                | cont-stmt ";"
+stmt            ::= exp ";"
+                  | declaration ";"
+                  | assignment ";"
+                  | "print" "(" exp ")" ";"
+                  | if-stmt ";"
+                  | loop-stmt ";"
+                  | break-stmt ";"
+                  | cont-stmt ";"
 
+if-stmt         ::= "if" conditional (block)? (else-stmt)?
 
+else_stmt       ::= "else" (block)? 
 
-if-stmt         -> "if" conditional (block)? (else-stmt)?
-else_stmt       -> "else" (block)? 
+loop-stmt       ::= while-stmt
+                  | for-stmt
 
-loop-stmt       -> while-stmt
-                | for-stmt
+for-stmt        ::= "for" "(" (declaration|assignment) ";" conditional ";" exp ")" (block)?
 
-for-stmt        -> "for" "(" (declaration|assignment) ";" conditional ";" exp ")" (block)?
-while-stmt      -> "while" conditional (block)?
+while-stmt      ::= "while" conditional (block)?
 
+declaration     ::= "let" ID "="  exp  
 
-declaration      -> "let" ID (":" type)? "="  exp  
+expression      ::= logical_expr
 
-type             -> INTEGER | FLOAT  | BOOL | STRING  //tokens
+logical_expr    ::= logic_term ("or" logic_term)*
 
-check_assign              -> ID (assignment | epsilon) 
+logic_term      ::= logic_factor ("and" logic_factor)*
 
+logic_factor    ::= cond_expr
+                  | not cond_expr
 
-assignment      ->  (:=|=) exp;
+cond_expr       ::= Arithmetic_exp (c_op Arithmetic_exp)*
 
+c_op            ::= ("==" | ">" | "<" | "<=" | ">=" | "!=")
 
-expression              -> logical_expr
+Arithmetic_expr ::= term (("+" | "-") term)
 
+Arithmetic_term ::= factor ( ("*" | "/" | "%") factor)*
 
+unary           ::= ( "-" | "+" ) factor
 
-
-logical_expr            -> logic_term logic_exp_prime
-logic_exp_prime         -> "or" logic_term logic_exp_prime
-                        | epsilon
-
-logic_term                -> logic_factor logic_term_prime
-logic_term_prime          -> "and" logic_factor logic_term_prime
-                        | epsilon
-
-logic_factor            -> conditional_expr
-                        | not conditional_expr
-
-
-
-
-conditional_expr        -> Arithmetic_exp cond_prime
-conditional_expr_prime  -> c_op Arithmetic_exp cond_expr_prime
-                        | epsilon
-
-
-c_op                    -> ("==" | ">" | "<" | "<=" | ">=" | "!=")
-
-
-
-Arithmetic_expr         -> term exp_prime  
-
-expr_prime              -> "+" term expr_prime 
-                        |  "-" term expr_prime
-                        |  epsilon
-
-term                    -> factor term_prime
-
-term_prime              -> "*" factor term_prime
-                        |  "/" factor term_prime
-                        |   "%" factor term_prime
-                        |  epsilon
-
-unary                   -> ( "-" | "+" ) factor
-
-factor                  -> NUM              //token
-                        |  "(" expression ")"
-                        |  unary
-                        |  STRING
-                        |  id
-
-
+Arithmetic_
+factor          ::= NUM
+                  |  "(" expression ")"
+                  |  unary
+                  |  STRING
+                  |  id
