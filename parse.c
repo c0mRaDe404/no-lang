@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <setjmp.h>
 #include "defs.h"
 
 
@@ -10,10 +10,14 @@
 
 #define RELATIONAL_OP(token) (token == DOUBLE_EQ || token == G_THAN || token == L_THAN\
                             || token == L_THAN_EQ || token == G_THAN_EQ || token == NOT_EQ)
+
+
 #define END_OF_FILE(token) (token == EOS) 
 #define END_OF_STMT(token) (token == CLOSE_CURLY)
+#define END(token) (END_OF_FILE(token) || END_OF_STMT(token))
 
 
+jmp_buf panic_recovery_state;
 
 AST_TYPE token_to_ast(TOKEN_TYPE type){
     switch(type){
@@ -44,29 +48,63 @@ AST_TYPE token_to_ast(TOKEN_TYPE type){
     }
 }
 
+void discard_tokens();
 
-void match(TOKEN_TYPE token) {
-    if(token == cur_token) {
-        prev_token = strndup(yytext,yyleng);
-        cur_token = yylex();
-    }else{
-        printf("Syntax error in line %d near %s\n",line,prev_token);
-        exit(ERROR);
+#define enter_panic_mode  discard_tokens
+#define throw_error(cur_token,err_msg) \
+    fprintf(stderr,"%s : at line %d : Unexpected token \"%s\" \n",err_msg,line,cur_token) 
+
+
+int is_sync_point(TOKEN_TYPE token){
+
+    switch(token){
+        case LET:case IF_KWD:
+        case WHILE:case FOR:
+        case PRINT:
+            return 1;
+        default:
+            return 0;
     }
 }
 
 
 
+void consume_token(){
+    prev_token = strndup(yytext,yyleng);
+    cur_token = yylex();
+}
 
 
+void match(TOKEN_TYPE expected_token) {
+    if(expected_token == cur_token) {
+       consume_token(); 
+    }else{
+        enter_panic_mode();
+    }
+}
+    
+void discard_tokens(){
+    #define PANIC_MODE 10
+    if(!END(cur_token)) {
+        throw_error(yytext,"Syntax Error");
+    }
+    while(!END(cur_token) && !is_sync_point(cur_token)){
+        consume_token();
+    }
 
+    longjmp(panic_recovery_state,PANIC_MODE);
+    return;
+}
 
 
 void *program(){
-    #define END(token) (END_OF_FILE(token) || END_OF_STMT(token))
     
     AST_NODE *n1,*n2;
-    n1 = statement();
+    
+    /* sets the checkpoint for panic mode recovery */
+    if(setjmp(panic_recovery_state) != PANIC_MODE){
+        n1 = statement();
+    }
 
     while(!END(cur_token)){
        n1 = mk_binary_node(STMT,n1,statement());
@@ -120,7 +158,9 @@ void *statement(){
             return mk_print_node(PRNT,n1);
         case IF_KWD:
             match(IF_KWD);
+            match(L_PAREN);
             n1 = expression();
+            match(R_PAREN);
             n2 = block();
             n3 = NULL;
             if(cur_token == ELSE_KWD){
@@ -246,22 +286,42 @@ void *logical_factor(){
     switch(cur_token){
         case NOT_OP:
             match(type);
-            return mk_unary_node(token_to_ast(type),conditional_expression());
+            return mk_unary_node(token_to_ast(type),equality_expression());
         default:
-            return conditional_expression();
+            return equality_expression();
     }
 }
 
 
-void *conditional_expression(){
+
+void *equality_expression(void){
+    #define EQ_OP(tok) ( tok == DOUBLE_EQ || tok == NOT_EQ )
+
+    TOKEN_TYPE type;
+    AST_NODE *n1;
+    n1 = conditional_expression();
+    while(EQ_OP(cur_token)){
+        type = cur_token;
+        match(type);
+        n1 = mk_binary_node(token_to_ast(type),n1,conditional_expression());
+    }
+
+    #undef EQ_OP
+    return n1;
+
+}
+
+void *conditional_expression(void){
+    #define CMP_OP(tok) (tok == G_THAN || tok == L_THAN || tok == G_THAN_EQ || tok == L_THAN_EQ)
     TOKEN_TYPE type;
     AST_NODE *n1;
     n1 = Arithmetic_expression();
-    while(RELATIONAL_OP(cur_token)){
+    while(CMP_OP(cur_token)){
         type = cur_token;
         match(type);
         n1 = mk_binary_node(token_to_ast(type),n1,Arithmetic_expression());
     }
+    #undef CMP_OP
     return n1;
 }
 
@@ -379,9 +439,7 @@ void *factor(){
             match(STRING);            
             return mk_string_node(STR,strndup(prev_token+1,strlen(prev_token)-2),strlen(prev_token)-2);
         default:
-            printf("Syntax error at line %d\n near %s\n",line,prev_token);
-            exit(ERROR);
-
+            enter_panic_mode();
     }
     return NULL;
 }

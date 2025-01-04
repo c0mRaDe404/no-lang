@@ -27,7 +27,8 @@ int main(int argc,char **argv){
     }
     cur_token = yylex();    
     AST_NODE *root = program();
-    long double value = eval_ast(root);
+    if(root != NULL)
+        eval_ast(root);
     
     #ifdef S_VIEW
     sym_view(sym_tab);
