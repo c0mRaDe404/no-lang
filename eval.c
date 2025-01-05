@@ -152,25 +152,30 @@ long double eval_ast(AST_NODE *root){
             #define cond_stmt head->For.cond
             #define expr_stmt head->For.exp
             #define statement head->For.stmts
-            
-            for(eval_ast(init_stmt);eval_ast(cond_stmt);eval_ast(expr_stmt)){
-                if(statement != NULL && FLOW(flow)) {
-                    eval_ast(statement);
-                }else if(flow == BRK_FLOW){
-                    flow = NONE;
-                    break;
-                }else if(flow == CONT_FLOW){
-                    flow = NONE;
-                    continue;
-                }else{
-                    return 0;
+
+            if(init_stmt != NULL) eval_ast(init_stmt);
+            if(cond_stmt != NULL){
+                while(eval_ast(cond_stmt)){
+                   if(statement != NULL && FLOW(flow)) {
+                       eval_ast(statement);
+                       eval_ast(expr_stmt);
+                   }else if(flow == BRK_FLOW){
+                       flow = NONE;
+                       break;
+                   }else if(flow == CONT_FLOW){
+                       flow = NONE;
+                       continue;
+                   }else{
+                       return 0;
+                   }
                 }
             }
-
+  
             #undef init_stmt 
             #undef cond_stmt 
             #undef expr_stmt 
-            #undef statement     
+            #undef statement
+            return 0;
         case WHILE:
             #define condition_node head->Binary.left
             #define value_node     head->Binary.right
@@ -202,3 +207,4 @@ long double eval_ast(AST_NODE *root){
             return 0;
     }
 }
+

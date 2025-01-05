@@ -160,7 +160,7 @@ void *statement(){
     RULE(STATEMENT,"stmt");
     #endif
 
-    AST_NODE *n1,*n2,*n3,*n4;
+    AST_NODE *n1 = NULL,*n2 = NULL,*n3 = NULL,*n4 = NULL;
     AST_TYPE type;
 
     switch(cur_token){
@@ -192,14 +192,21 @@ void *statement(){
             loop_counter++;
             match(L_PAREN);
             sym_tab = push(s_ptr,sym_tab);
-            if(cur_token != SEMI_COLON) 
-                n1 = declaration();
+            if(cur_token != SEMI_COLON){ 
+                if(cur_token == LET) {
+                    n1 = declaration();
+                }else {
+                    n1 = assignment();
+                }
+            }
             match(SEMI_COLON);
-            if(cur_token != SEMI_COLON) 
+            if(cur_token != SEMI_COLON){ 
                 n2 = expression();
+            }
             match(SEMI_COLON);
-            if(cur_token != R_PAREN)    
+            if(cur_token != R_PAREN){    
                 n3 = expression();
+            }
             match(R_PAREN);
             n4 = block();
             loop_counter--;
