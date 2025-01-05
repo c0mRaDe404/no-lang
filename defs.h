@@ -23,7 +23,7 @@ typedef enum {
     STRING, IF_KWD, ELSE_KWD, OPEN_CURLY,
     CLOSE_CURLY, WHILE_STMT, FOR_STMT,
     BREAK, CONTINUE, PLUS_PLUS,
-    MINUS_MINUS,LIST_STMT
+    MINUS_MINUS,COMMA_OP,LIST_STMT
 }TOKEN_TYPE;
 
 
@@ -269,7 +269,7 @@ int       check_unary      (AST_TYPE);
 
 /*---------------- PARSER FUNCTIONS -----------------*/
 
-void    match(TOKEN_TYPE); // match token and move lookahead to next token
+int    match(TOKEN_TYPE); // match token and move lookahead to next token
 
 
 void    *program                  (void);

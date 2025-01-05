@@ -1,0 +1,9 @@
+let a = 10;
+let b = 100;
+let c = 1000;
+let d = 100000000;
+a = c = b = d;
+
+print(a);
+print(b);
+print(c);

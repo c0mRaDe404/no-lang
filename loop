@@ -1,0 +1,11 @@
+let i = 0;
+let j = 0;
+
+for(;i<10;){
+    for(;j<10;j = j+1){
+        print(i);
+        print(j);
+    }
+    i = i+1;
+
+}

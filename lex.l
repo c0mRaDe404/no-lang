@@ -28,6 +28,7 @@ int line = 1;
 "="                                                 {    return EQ;        }
 ":"                                                 {   return COLON;      }
 ";"                                                 {    return SEMI_COLON;    }
+","                                                 {   return COMMA_OP;       }
 \{                                                  {    return OPEN_CURLY;    }
 \}                                                  {    return CLOSE_CURLY;   }
 

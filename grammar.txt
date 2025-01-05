@@ -1,6 +1,6 @@
-program         ::= stmts
+program         ::= stmts /* general statements */
 
-block           ::= "{" (stmts)? "}"
+block           ::= "{" (stmts)? "}" /* loops,conditions etc.. */
 
 stmts           ::= stmt stmts | stmt
 
@@ -24,9 +24,17 @@ for-stmt        ::= "for" "(" (declaration|assignment) ";" conditional ";" exp "
 
 while-stmt      ::= "while" conditional (block)?
 
-declaration     ::= "let" ID "="  exp  
+/*let x,y,z be int;*/
 
-expression      ::= logical_expr
+let a,b,c = 10;
+
+declaration     ::= "let" ID ("," ID ("=" exp)?)* "="  exp  
+
+expression      ::= assignment
+
+assignment      ::= logical_expr (("=") assignment)?
+
+/* assignment      ::= logical_expr ((("=") logical_expr)*)? */
 
 logical_expr    ::= logic_term ("or" logic_term)*
 

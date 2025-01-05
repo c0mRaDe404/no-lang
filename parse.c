@@ -48,11 +48,12 @@ AST_TYPE token_to_ast(TOKEN_TYPE type){
     }
 }
 
-void discard_tokens();
+void discard_tokens(char *exp_tok);
 
 #define enter_panic_mode  discard_tokens
-#define throw_error(cur_token,err_msg) \
-    fprintf(stderr,"%s : at line %d : Unexpected token \"%s\" \n",err_msg,line,cur_token) 
+#define throw_error(cur_token,err_msg,expected_token) \
+    fprintf(stderr,"%s : at line %d : Expected \"%s\" : got \"%s\" \n",\
+            err_msg,line,expected_token,cur_token) 
 
 
 int is_sync_point(TOKEN_TYPE token){
@@ -67,7 +68,21 @@ int is_sync_point(TOKEN_TYPE token){
     }
 }
 
+/* common syntax errors and error messages */
+char *error_msg(TOKEN_TYPE e_tok){
+    switch(e_tok){
+        case ID: return "identifier";
+        case OPEN_CURLY : return "{";
+        case CLOSE_CURLY : return "}";
+        case L_PAREN : return "(";
+        case R_PAREN : return ")";
+        case SEMI_COLON: return ";";
+        case EQ: return "=";
+        default:
+            return "expression";
+    }
 
+}
 
 void consume_token(){
     prev_token = strndup(yytext,yyleng);
@@ -75,18 +90,20 @@ void consume_token(){
 }
 
 
-void match(TOKEN_TYPE expected_token) {
+int match(TOKEN_TYPE expected_token) {
     if(expected_token == cur_token) {
-       consume_token(); 
+       consume_token();
+       return 1;
     }else{
-        enter_panic_mode();
+        enter_panic_mode(error_msg(expected_token));
+        return 0;
     }
 }
     
-void discard_tokens(){
+void discard_tokens(char *err_msg){
     #define PANIC_MODE 10
     if(!END(cur_token)) {
-        throw_error(yytext,"Syntax Error");
+        throw_error(yytext,"Syntax Error",err_msg);
     }
     while(!END(cur_token) && !is_sync_point(cur_token)){
         consume_token();
@@ -97,6 +114,7 @@ void discard_tokens(){
 }
 
 
+/* program  ::=  stmt stmt* */
 void *program(){
     
     AST_NODE *n1,*n2;
@@ -113,19 +131,20 @@ void *program(){
 }
 
 
-
+/* block ::= '{' stmt stmts* '}' */
 void *block(){
 
     AST_NODE *node = NULL;
     if(cur_token == OPEN_CURLY){
         sym_tab = push(s_ptr,sym_tab);
         match(OPEN_CURLY);
-        if(cur_token != CLOSE_CURLY) node = program();
+        if(cur_token != CLOSE_CURLY) 
+                node = program(); /* reusing program ::= stmt stmt* */
         match(CLOSE_CURLY);
         sym_tab = pop(s_ptr);
         return node;
     }else {
-        return program();
+        return statement();
     } 
     return node;
 }
@@ -134,7 +153,7 @@ void *block(){
 
 
 
-
+                
 void *statement(){
 
     #ifdef DEBUG
@@ -151,16 +170,16 @@ void *statement(){
             return n1;
         case PRINT:
             match(PRINT);
-            match(L_PAREN);
+            //match(L_PAREN);
             n1 = expression();
-            match(R_PAREN);
+            //match(R_PAREN);
             match(SEMI_COLON);
             return mk_print_node(PRNT,n1);
         case IF_KWD:
             match(IF_KWD);
-            match(L_PAREN);
+            //match(L_PAREN);
             n1 = expression();
-            match(R_PAREN);
+            //match(R_PAREN);
             n2 = block();
             n3 = NULL;
             if(cur_token == ELSE_KWD){
@@ -217,32 +236,41 @@ void *statement(){
 
 
 void *declaration(){
+    AST_NODE  *node;
+    SYM_TABLE *entry;
+    TYPE       sym_type;
+    char      *id;
 
     match(LET);
-    AST_NODE *node;
-    SYM_TABLE *entry;
-    TYPE sym_type;
-    char *id = strndup(yytext,yyleng);
-    entry = sym_entry(sym_tab,id,0);
+    id = strndup(yytext,yyleng);
     match(ID);
+    entry = sym_entry(sym_tab,id,0);
     match(EQ);
     return mk_assign_node(ASSIGN,id,expression(),sym_tab);
 }
 
 
 void *assignment(){
-        char *id = prev_token;
+        #define ASSIGN(tok) (cur_token == EQ)
+        char     *id = strndup(yytext,yyleng);
+        AST_NODE *n1;
         SYM_DATA *s_tab;
-        match(EQ);
-        s_tab = sym_fetch(sym_tab,id);
-        return mk_assign_node(ASSIGN,id,expression(),s_tab->sym_table);
+        n1 = logical_expression();
+
+        if (ASSIGN(cur_token)){
+            match(EQ);
+            s_tab = sym_fetch(sym_tab,id); 
+            n1 = mk_assign_node(ASSIGN,id,assignment(),s_tab->sym_table);
+        }
+        return n1;
 }
 
 
 
 
 void *expression(){
-    return logical_expression();
+    AST_NODE *n1 = assignment();
+    return n1;
 }
 
 
@@ -424,22 +452,25 @@ void *factor(){
         case ID:
             match(ID);   //need to make num node;
             if(cur_token == EQ) 
-                return assignment();
+                break;
+
             s_tab = sym_fetch(sym_tab,prev_token);
             node = mk_num_node(NO,s_tab->entry->value,&s_tab->entry->value);
             return node;
         case TRUE_EXP:
-        case FALSE_EXP:
-            #define bool_value(type) (type == TRUE_EXP)? true : false
             type = cur_token;
             match(type);
-            return mk_bool_node(token_to_ast(type),bool_value(type));   
+            return mk_bool_node(token_to_ast(type),true);   
+        case FALSE_EXP:
+            type = cur_token;
+            match(type);
+            return mk_bool_node(token_to_ast(type),false);   
             
         case STRING:
             match(STRING);            
             return mk_string_node(STR,strndup(prev_token+1,strlen(prev_token)-2),strlen(prev_token)-2);
         default:
-            enter_panic_mode();
+            enter_panic_mode("factor");
     }
     return NULL;
 }
