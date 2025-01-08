@@ -7,10 +7,10 @@
 extern SCOPE_STACK *s_ptr;
 
 
-S_TABLE *sym_create(){
-    S_TABLE *table;
-    table = malloc(sizeof(S_TABLE));
-    table->sym_table = calloc(SYM_TABLE_S,sizeof(SYM_TABLE*));
+SYM_TABLE *sym_create(){
+    SYM_TABLE *table;
+    table = malloc(sizeof(SYM_TABLE));
+    table->sym_table = calloc(SYM_TABLE_S,sizeof(SYM_ENTRY*));
     table->counter = 0;
     return table;
 }
@@ -31,72 +31,64 @@ size_t hash(char *string,size_t m_val){
     return counter;
 }
 
-SYM_TABLE *sym_entry(S_TABLE *table,char *id,long double value){
-   
+SYM_ENTRY *sym_update(SYM_TABLE *table,char *id,long double value){ 
+    SYM_DATA *record = sym_fetch(table,id);
+    record->entry->value = value;
+    return record->entry;
+}
 
+SYM_ENTRY *sym_entry(char *id,long double value){
+    #define sym_tab(tab) (tab->sym_table) 
+    #define add_entry(rec,id,val,n_ptr)\
+                      rec = malloc(sizeof(SYM_ENTRY));\
+                      rec->id_name = id;\
+                      rec->value = value;\
+                      rec->next = n_ptr;
+        
+    SYM_TABLE *table = get_cur_scope(s_ptr);
     size_t c = hash(id,SYM_TABLE_S);
-    if(table->sym_table[c] == NULL){
-        table->sym_table[c] = malloc(sizeof(SYM_TABLE));
-        table->sym_table[c]->id_name = strdup(id);
-        table->sym_table[c]->value = value;
+    
+    if(sym_tab(table)[c] == NULL){ /* add the entry if the current entry is empty */
+        add_entry(sym_tab(table)[c],id,value,NULL);
         table->counter++;
-        return table->sym_table[c];
-    }else if(table->sym_table[c]->next == NULL){
-        if(!sym_check(table,id,c)){
-            SYM_TABLE *t = malloc(sizeof(SYM_TABLE));
-            table->sym_table[c]->next = t;
-            t->id_name = id;
-            t->value = value;
-            t->next = NULL;
-            return table->sym_table[c];
-        }else{
-            table->sym_table[c]->value = value;
-            return table->sym_table[c];
-        }
-    }else{
-        SYM_TABLE *t = table->sym_table[c];
-        if(!sym_check(table,id,c)){
-            while(t->next != NULL){
-                t = t->next;
-            }
-            t->next = malloc(sizeof(SYM_TABLE));
-            t->next->id_name = id;
-            t->next->value = value;
-            t->next->next = NULL;
-            return t;
-        }else{
-            //t->id_name != id  
-            while((strcmp(t->id_name,id) != 0)){
-                t = t->next;
-            }
-            t->value = value;
-            return t;
-        }
+        return sym_tab(table)[c];
 
+    }else {  /* chains the entry if the hash is same */
+        
+        if(!sym_check(table,id,c)){ /* for entry,if no entry exists abt the id/variable */
+            SYM_ENTRY *current_entry = sym_tab(table)[c];
+            while(current_entry->next != NULL){
+                current_entry = current_entry->next;
+            }
+            add_entry(current_entry->next,id,value,NULL);
+            return sym_tab(table)[c];
+        }
     }
+
+    return NULL;
 }
 
 
-int sym_check(S_TABLE *s,char *id,int index){
+int sym_check(SYM_TABLE *s,char *id,int index){
     
-    SYM_TABLE *entry = s->sym_table[index];
+    SYM_ENTRY *entry = s->sym_table[index];
     if(entry == NULL){
         return 0;
     }else if(!strcmp(entry->id_name,id)){
             return 1;
     }else{
-            SYM_TABLE *head = entry;
-            while(head->next != NULL){
-                if(head->id_name == id) 
-                        return 1;
-                head = head->next;             
+        SYM_ENTRY *head = entry;
+        while(head->next != NULL){
+            if(head->id_name == id) 
+                    return 1;
+            head = head->next;             
         }
     }
     return 0;
 }
 
 
-SYM_DATA *mk_sym_data(S_TABLE *sym_table,SYM_TABLE *entry){
+SYM_DATA *mk_sym_data(SYM_TABLE *sym_table,SYM_ENTRY *entry){
         SYM_DATA *n = malloc(sizeof(SYM_DATA));
         n->entry = entry;
         n->sym_table = sym_table;
@@ -104,68 +96,44 @@ SYM_DATA *mk_sym_data(S_TABLE *sym_table,SYM_TABLE *entry){
 }
 
 
-SYM_DATA *sym_fetch(S_TABLE *s,char *id){
+SYM_DATA *sym_fetch(SYM_TABLE *s,char *id){
+        #define lookup_parent(parent,entry_no) parent->sym_table[entry_no]
         
-        int index = hash(id,SYM_TABLE_S);
-        
-        SYM_TABLE *entry = s->sym_table[index];
+        int index = hash(id,SYM_TABLE_S);     
+        SYM_TABLE *table = s;
+        SYM_ENTRY *entry = s->sym_table[index];
 
-        if(entry == NULL){
-            if(s_ptr->top > 0){
-
-                #define ENTRY(s,c,i) s->stack[c]->sym_table[i]
-                int counter = s_ptr->top-1;
-
-                while(counter >= 0){
-                    if(entry == NULL){
-                        entry = ENTRY(s_ptr,counter,index);
-                        counter--;
-                    }else {
-                        return mk_sym_data(s_ptr->stack[counter+1],entry);
-                    }
-                }
-
-                if(entry != NULL){
-                    return mk_sym_data(s_ptr->stack[counter+1],entry);
-                }else {
-                    printf("line %d : Id '%s' is not defined\n",line,id);
-                    exit(0);
-                }
+        while(entry == NULL){
+            if(table->parent != NULL){
+                entry = lookup_parent(table->parent,index);
+                table = table->parent;
             }else{
                 printf("line %d : Id '%s' is not defined\n",line,id);
                 exit(0);
-            }    
-        }else if(!strcmp(entry->id_name,id)){
-            return mk_sym_data(s,entry);
-        }else{
-            SYM_TABLE *cur_entry = entry;
-            while(cur_entry != NULL){
-                if(!strcmp(cur_entry->id_name,id)) 
-                     return mk_sym_data(s,cur_entry);
-                cur_entry = cur_entry->next;             
             }
-            printf("line %d : Id '%s' is not defined\n",line,id);
-            exit(0);
-
         }
+        return mk_sym_data(table,entry);            
 }
 
 
-void sym_view(S_TABLE *s){
-
+void sym_view(SCOPE_STACK *s){
+    
     for(int i = 0;i< SYM_TABLE_S;i++){
-        SYM_TABLE *entry = s->sym_table[i];
-        if(entry == NULL) 
-            continue;
+        if(i < s->top ){
 
-        printf("[%i] %s : %Lf \n",i,entry->id_name,entry->value);
-        if(entry->next != NULL){
-            SYM_TABLE *head = entry->next;
-            int count = 1;
-            while(head != NULL){
-                printf("[%d][%d] %s : %Lf \n",i,count,head->id_name,head->value);
-                head = head->next;
-                count++;
+            SYM_ENTRY *entry = s->stack[i]->sym_table[i];
+            if(entry == NULL) 
+                continue;
+
+            printf("[%i] %s : %Lf \n",i,entry->id_name,entry->value);
+            if(entry->next != NULL){
+                SYM_ENTRY *head = entry->next;
+                int count = 1;
+                while(head != NULL){
+                    printf("[%d][%d] %s : %Lf \n",i,count,head->id_name,head->value);
+                    head = head->next;
+                    count++;
+                }     
             }
         }
     }

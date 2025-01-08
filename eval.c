@@ -114,8 +114,8 @@ long double eval_ast(AST_NODE *root){
         case ASSIGN:
             #define value(head) head->Assign.value
             if(value(head)!= NULL){
-            temp_value = eval_ast(value(head));
-            sym_entry(head->sym_data->sym_table,head->Assign.id_name,temp_value);
+                temp_value = eval_ast(value(head));
+                sym_update(head->sym_data->sym_table,head->Assign.id_name,temp_value);
             }          
             return temp_value;
         case PRNT:
@@ -196,7 +196,20 @@ long double eval_ast(AST_NODE *root){
             #undef condition_node
             #undef value_node 
             return 0;
-    
+        case FDEF:
+            return 0;
+        case FCALL:
+        #define arg_v(head) (head->Func_call.argv)
+        #define arg_c(head) (head->Func_call.argc)
+        #define param_v(head) (head->Func_call.callee->Func_def.f_params)
+        #define scope(head) (head->Func_call.callee->sym_data->sym_table)
+        #define body(head) (head->Func_call.callee->Func_def.f_body)
+        for(int i = 0;i<arg_c(head);i++){
+            temp_value = eval_ast(arg_v(head)[i]); // binding values to all local variables
+            sym_update(scope(head),param_v(head)[i],temp_value);
+        }
+        eval_ast(body(head));
+        return 1;
         case BRK:
             flow = BRK_FLOW;
             return 0;

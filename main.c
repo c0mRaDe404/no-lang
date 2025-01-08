@@ -6,16 +6,15 @@
 
 TOKEN_TYPE cur_token;
 char *prev_token;
-S_TABLE *sym_tab;
+SYM_TABLE *sym_tab;
 size_t loop_counter = 0;
 SCOPE_STACK *s_ptr;
 
 
 int main(int argc,char **argv){
     FILE *file;
-    SCOPE_STACK s_stack;
-    s_ptr = mk_stack(&s_stack,100);
-    sym_tab = sym_create();
+    s_ptr = mk_scope_stack(100);
+    scope_enter(s_ptr,sym_create());
     
     if(argc < 2) {
         //printf("usage : calc <file> ");
@@ -31,7 +30,7 @@ int main(int argc,char **argv){
         eval_ast(root);
     
     #ifdef S_VIEW
-    sym_view(sym_tab);
+    sym_view(s_ptr);
     #endif
 
     #ifdef DEBUG

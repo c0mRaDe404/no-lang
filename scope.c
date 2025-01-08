@@ -5,25 +5,43 @@
 #define TOP(s) (s->top)
 
 
-void *mk_stack(SCOPE_STACK *stack,size_t stack_size){
+void *mk_scope_stack(size_t stack_size){
     
-    stack->stack = malloc(stack_size*sizeof(S_TABLE*));
-    stack->top = 0;
-    stack->size = stack_size;
-    return stack; 
+    SCOPE_STACK *new_stack = malloc(sizeof(SCOPE_STACK));
+    new_stack->stack = malloc(stack_size*sizeof(SYM_TABLE*));
+    new_stack->top = 0;
+    new_stack->size = stack_size;
+    return new_stack; 
 }
 
-S_TABLE *push(SCOPE_STACK *stack,S_TABLE *cur_symbol_table){
+
+size_t scope_level(SCOPE_STACK *stack){
+    return stack->top;
+}
+
+SYM_TABLE *get_cur_scope(SCOPE_STACK *stack){
+    return stack->stack[stack->top-1];
+}
+
+SYM_TABLE *scope_enter(SCOPE_STACK *stack,SYM_TABLE *new_scope_table){
     if(TOP(stack) <= stack->size){
-        stack->stack[TOP(stack)++] = cur_symbol_table;
-        return sym_create();
+        if(TOP(stack) == 0){
+            stack->stack[TOP(stack)++] = new_scope_table;
+            return new_scope_table;
+        }else{
+            SYM_TABLE *cur_scope_table = get_cur_scope(stack);
+            stack->stack[TOP(stack)++] = new_scope_table;
+            new_scope_table->parent = cur_scope_table;
+            cur_scope_table->child = new_scope_table;
+            return new_scope_table;
+        }
     }else {
         fprintf(stderr,"STACK LIMIT EXCEEDED !!!\n");
         exit(1000);
     }
 }
 
-S_TABLE *pop(SCOPE_STACK *stack){
+SYM_TABLE *scope_exit(SCOPE_STACK *stack){
     if(stack->top >=0)
         return stack->stack[--TOP(stack)];
     else

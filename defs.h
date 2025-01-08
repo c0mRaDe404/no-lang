@@ -22,8 +22,8 @@ typedef enum {
     G_THAN_EQ, NOT_EQ, TRUE_EXP, FALSE_EXP,
     STRING, IF_KWD, ELSE_KWD, OPEN_CURLY,
     CLOSE_CURLY, WHILE_STMT, FOR_STMT,
-    BREAK, CONTINUE, PLUS_PLUS,
-    MINUS_MINUS,COMMA_OP,LIST_STMT
+    BREAK, CONTINUE, PLUS_PLUS,FUNC_DEF,
+    MINUS_MINUS,COMMA_OP,LIST_STMT,FUNC_CALL
 }TOKEN_TYPE;
 
 
@@ -34,12 +34,12 @@ typedef enum{
     GT, LT, LEQ, GEQ, NEQ, AND, 
     OR, NOT, IF, ELSE, FOR, WHILE,
     BRK, CONT, PR_INC, PR_DEC, PO_INC,
-    PO_DEC, TRUE, FALSE, LIST
+    PO_DEC, TRUE, FALSE, LIST,FDEF,FCALL
 }AST_TYPE;
 
 typedef enum{
-    false = 0,
-    true = 1
+    False = 0,
+    True = 1
 }Boolean;
 
 typedef enum{
@@ -62,15 +62,13 @@ typedef enum{
     FLOAT_TYPE,
     BOOL_TYPE,
     STR_TYPE,
-}TYPE;
+}DATA_TYPE;
 
 
 
-TYPE get_type(TOKEN_TYPE);
 
 typedef struct{
-    TYPE type;
-
+    DATA_TYPE type;
     union{
         struct {
             int int_val;
@@ -88,15 +86,16 @@ typedef struct{
 
         struct{
             char *string_val;
+            size_t length;
         }String;
-
     };
 
 }VALUE;
 
 
-TYPE   ast_to_type  (AST_TYPE type);
-VALUE *mk_value     (TYPE,long double,void *);
+DATA_TYPE get_type(TOKEN_TYPE);
+DATA_TYPE   ast_to_type  (AST_TYPE type);
+VALUE *mk_value     (DATA_TYPE,long double,void *);
 /*---------------------------------------------------------*/
 
 
@@ -109,37 +108,47 @@ VALUE *mk_value     (TYPE,long double,void *);
 
 #define SYM_TABLE_S 50
 
+/* symbol record */
+
+typedef enum{
+    SYMBOL_GLOBAL,
+    SYMBOL_LOCAL,
+    SYMBOL_PARAM
+}SYM_TYPE;
+
+typedef struct SYM_ENTRY{
+    char *id_name; /* symbol name */
+    SYM_TYPE symbol_type;
+    long double value;   /* actual data */
+    long double *ref;   /* pointer to the data */
+    VALUE *Value;      /* struct for storing the data */
+    struct AST_NODE *node;
+    struct SYM_ENTRY *next; /* pointer for chaining the entries together */
+}SYM_ENTRY;
+
+/* symbol table - collection of symbol entries */
 typedef struct SYM_TABLE{
-    char *id_name;
-    TYPE type;
-    long double value;
-    long double *ref;
-
-    VALUE *Value;
-
-    struct SYM_TABLE *next;
-    //struct AST_NODE *value_ptr;
+    SYM_ENTRY **sym_table; /* array of symbol entries (each variable have its own) */
+    struct SYM_TABLE *parent; /* pointer that points to its enclosing scope or parent scope */
+    struct SYM_TABLE *child; /* pointer to the child scope */
+    size_t counter; /* counter for symbol table */
 }SYM_TABLE;
 
-typedef struct{
-    SYM_TABLE **sym_table;
-    size_t counter;
-}S_TABLE;
 
-
+/* stores the entry and the symbol table of its scope */
 typedef struct{
-    S_TABLE *sym_table;
-    SYM_TABLE *entry;
+    SYM_TABLE *sym_table; /* current scope */
+    SYM_ENTRY *entry; /* entry of one identifier */
 }SYM_DATA;
 
-size_t       hash        (char*,size_t);
-S_TABLE     *sym_create  ();
-SYM_TABLE   *sym_entry   (S_TABLE*,char*,long double);
+size_t         hash        (char*,size_t);
+SYM_TABLE     *sym_create  ();
+SYM_ENTRY     *sym_entry   (char*,long double);
 
-SYM_DATA    *sym_fetch   (S_TABLE*,char*);
+SYM_DATA      *sym_fetch   (SYM_TABLE*,char*);
 
-int          sym_check   (S_TABLE *,char *,int);
-void         sym_update  (void *,void *);
+int          sym_check   (SYM_TABLE *,char *,int);
+SYM_ENTRY         *sym_update  (SYM_TABLE*,char *,long double);
 
 /*---------------------------------------------------------*/
 
@@ -153,6 +162,7 @@ void         sym_update  (void *,void *);
 /*------------------ AST TREE STRUCTURE ------------------*/
 
 typedef struct AST_NODE{
+    
     AST_TYPE ast_type;
     SYM_DATA *sym_data;
 
@@ -174,6 +184,21 @@ typedef struct AST_NODE{
             struct AST_NODE *value;  // value ast_node
         }Assign;
         
+        struct{
+            char *f_name;
+            char **f_params;
+            size_t par_count;
+            struct AST_NODE *f_body;
+        }Func_def;
+
+        struct{
+            struct AST_NODE *callee;
+            struct AST_NODE **argv;
+            size_t argc;
+        }Func_call;
+
+
+
         struct {
             struct AST_NODE *exp;
             struct AST_NODE *left;
@@ -225,15 +250,16 @@ typedef struct AST_NODE{
 /*-------------- SCOPE STACK ---------------------------*/
 
 typedef struct{
-    S_TABLE **stack;
+    SYM_TABLE **stack;
     size_t size;
     size_t top;
 }SCOPE_STACK;
 
-void    *mk_stack (SCOPE_STACK *,size_t);
-S_TABLE *push     (SCOPE_STACK *,S_TABLE *);
-S_TABLE *pop      (SCOPE_STACK *);
+void    *mk_scope_stack (size_t);
+SYM_TABLE *scope_enter     (SCOPE_STACK *,SYM_TABLE *);
+SYM_TABLE *scope_exit      (SCOPE_STACK *);
 
+SYM_TABLE *get_cur_scope(SCOPE_STACK *stack);
 /*-------------------------------------------------------*/
 
 
@@ -244,7 +270,7 @@ AST_NODE *mk_num_node      (AST_TYPE ,long double,void *);
 
 AST_NODE *mk_unary_node    (AST_TYPE,AST_NODE *);
 
-AST_NODE *mk_assign_node   (AST_TYPE,char *,AST_NODE *,S_TABLE *);
+AST_NODE *mk_assign_node   (AST_TYPE,char *,AST_NODE *,SYM_TABLE *);
 
 AST_NODE *mk_print_node    (AST_TYPE,AST_NODE *);
 
@@ -260,6 +286,8 @@ AST_NODE *mk_float_node    (AST_TYPE type,long double num,long double *ref);
 
 AST_NODE *mk_int_node      (AST_TYPE type,int num,int *ref);
 
+AST_NODE *mk_func_call_node(AST_TYPE,AST_NODE*,AST_NODE **,size_t);
+AST_NODE *mk_func_def_node(AST_TYPE,char*,char**,size_t,AST_NODE*,SYM_TABLE*);
 AST_NODE *mk_flow_node     (AST_TYPE);
 
 int       check_binary     (AST_TYPE);
@@ -286,6 +314,8 @@ void    *conditional_expression   (void);
 void    *Arithmetic_expression    (void);
 void    *term                     (void);
 void    *factor                   (void);
+void    *parse_func_def           (void);
+void    *parse_func_call                (void);
 void    *check_assign             (void);
 
 
@@ -301,10 +331,10 @@ long double eval_ast              (AST_NODE*);
 
 
 extern int        yylex        ();
-extern SYM_DATA  *sym_fetch    (S_TABLE*,char*);
-extern SYM_TABLE *sym_entry    (S_TABLE *table,char *id,long double value);
-extern S_TABLE   *sym_create   ();
-extern void       sym_view     (S_TABLE *);
+extern SYM_DATA  *sym_fetch    (SYM_TABLE*,char*);
+extern SYM_ENTRY *sym_entry    (char *,long double);
+extern SYM_TABLE   *sym_create   ();
+extern void       sym_view     (SCOPE_STACK *);
 
 
 /*----------------------------------------------------*/
@@ -312,10 +342,10 @@ extern void       sym_view     (S_TABLE *);
 
 /*-------------- SHARED VARIABLES --------------------*/
 
-extern S_TABLE *sym_tab;
+extern SYM_TABLE *sym_tab;
 extern char *yytext;
 extern FILE *yyin;
-extern S_TABLE *sym_tab;
+extern SYM_TABLE *sym_tab;
 extern TOKEN_TYPE cur_token;
 extern int yyleng;
 extern int line;

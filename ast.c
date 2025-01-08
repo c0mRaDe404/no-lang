@@ -18,12 +18,9 @@ FLOW flow = NONE;
 
 int check_unary(AST_TYPE type){
         switch(type){
-            case NO:
-            case INT:
-            case FLT:
-            case NOT:
-            case U_PLUS:
-            case U_MIN:
+            case NO    :case INT:
+            case FLT   :case NOT:
+            case U_PLUS:case U_MIN:
                 return 1;
             default:
                 return 0;
@@ -32,20 +29,12 @@ int check_unary(AST_TYPE type){
 
 int check_binary(AST_TYPE type){
         switch(type){
-            case ADD:
-            case MUL:
-            case DIV:
-            case SUB:
-            case STMT:
-            case DEQ:
-            case GT:
-            case LT:
-            case MOD:
-            //case AND:
-            //case OR:
-            case GEQ:
-            case LEQ:
-            case NEQ:
+            case ADD :case MUL:
+            case DIV :case SUB:
+            case STMT:case DEQ:
+            case GT  :case LT :
+            case MOD :case GEQ:
+            case LEQ :case NEQ:
                 return 1;
             default:
                 return 0;
@@ -70,15 +59,15 @@ AST_NODE *mk_unary_node(AST_TYPE type,AST_NODE *factor){
     return new_node;
 }
 
-AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr,S_TABLE *sym_tab){
+AST_NODE *mk_assign_node(AST_TYPE type,char *id,AST_NODE *expr,SYM_TABLE *sym_tab){
     AST_NODE *new_node = malloc(sizeof(AST_NODE));
     new_node->sym_data = malloc(sizeof(SYM_DATA));
     new_node->ast_type = type;
     new_node->Assign.id_name = id;
     new_node->Assign.value = expr;
 
-    if(sym_tab != NULL) 
-        new_node->sym_data->sym_table = sym_tab;
+    if(sym_tab != NULL) /* for resolving */
+        new_node->sym_data->sym_table = sym_tab; /* attaching symbol table to the node */
     return new_node;
 }
 
@@ -177,3 +166,27 @@ AST_NODE *mk_string_node(AST_TYPE type,char *string,size_t length){
 }
 
 
+AST_NODE *mk_func_def_node(AST_TYPE type,char *f_name,char **f_params,size_t param_count,AST_NODE *f_body,SYM_TABLE *cur_sym_table){
+    
+    AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->sym_data = malloc(sizeof(SYM_DATA));
+    new_node->ast_type = type;
+    new_node->Func_def.f_name = f_name;
+    new_node->Func_def.f_params = f_params;
+    new_node->Func_def.par_count = param_count;
+    new_node->Func_def.f_body = f_body;
+
+    if(cur_sym_table != NULL) /* for resolving */
+        new_node->sym_data->sym_table = cur_sym_table; /* attaching symbol table to the node */
+    return new_node;
+}
+
+AST_NODE *mk_func_call_node(AST_TYPE type,AST_NODE *callee,AST_NODE **argv,size_t argc){
+
+    AST_NODE *new_node = malloc(sizeof(AST_NODE));
+    new_node->ast_type = type;
+    new_node->Func_call.callee = callee;
+    new_node->Func_call.argc = argc;
+    new_node->Func_call.argv = argv;
+    return new_node;
+}
