@@ -1,15 +1,29 @@
-#include "defs.h"
 #include <stdlib.h>
+#include <setjmp.h>
+#include "defs.h"
 
 #define FLOW(flow)  (flow != BRK_FLOW && flow != CONT_FLOW)
-#define BINARY(head)   ((head !=NULL) && (check_binary(head->ast_type)))
-#define LOGIC(head)    ((head->ast_type == AND) || (head->ast_type == OR))
-#define UNARY(head)  ((head != NULL) && check_unary(head->ast_type))
+#define BINARY(ast_node)   ((ast_node !=NULL) && (check_binary(ast_node->ast_type)))
+#define LOGIC(ast_node)    ((ast_node->ast_type == AND) || (ast_node->ast_type == OR))
+#define UNARY(ast_node)  ((ast_node != NULL) && check_unary(ast_node->ast_type))
 
-#define BINARY_OR_UNARY(head) (UNARY(head) || BINARY(head) || LOGIC(head))
+#define BINARY_OR_UNARY(ast_node) (UNARY(ast_node) || BINARY(ast_node) || LOGIC(ast_node))
 
 extern FLOW flow;
+int is_return = 0;
 
+
+typedef struct jmp_context{
+    jmp_buf ret_state;
+}jmp_context;
+
+typedef struct jmp_stack{
+    jmp_context jmp_c[1000];
+    size_t top;
+}jmp_stack;
+
+
+jmp_stack j_stack = {0};
 
 
 void print_value(AST_TYPE type,void *value){ 
@@ -33,8 +47,9 @@ void print_value(AST_TYPE type,void *value){
 
 long double eval_ast(AST_NODE *root){
     
-    AST_NODE *head = root;
+    AST_NODE *ast_node = root;
     AST_TYPE type;
+    SYM_DATA *table;
     VALUE *value;
     long double temp_value;
     long double *temp_ptr;
@@ -45,16 +60,16 @@ long double eval_ast(AST_NODE *root){
     right_node = NULL;
 
     
-    if(BINARY(head)){
-        left_node = head->Binary.left;
-        right_node = head->Binary.right;
+    if(BINARY(ast_node)){
+        left_node = ast_node->Binary.left;
+        right_node = ast_node->Binary.right;
     }
 
 
-    if(left_node != NULL && FLOW(flow)) left = eval_ast(head->Binary.left);
-    if(right_node != NULL && FLOW(flow)) right = eval_ast(head->Binary.right);
+    if(left_node != NULL && FLOW(flow)) left = eval_ast(ast_node->Binary.left);
+    if(right_node != NULL && FLOW(flow)) right = eval_ast(ast_node->Binary.right);
 
-    type = head->ast_type;
+    type = ast_node->ast_type;
     switch(type){
         case NO:
         case INT:
@@ -62,45 +77,50 @@ long double eval_ast(AST_NODE *root){
             #define val_r(h) h->Number.ref
             #define val(h) h->Number.num
 
-            if(head->Number.ref != NULL){
-                return *(head->Number.ref);
+            if(ast_node->Number.ref != NULL){
+                temp_value =  *(ast_node->Number.ref);
             }else{
-                return head->Number.num;
+                temp_value = ast_node->Number.num;
             }
+            return temp_value;
         case TRUE:
-            return (Boolean) head->Bool.value;
+            return (Boolean) ast_node->Bool.value;
         case FALSE:
-            return (Boolean)head->Bool.value;
+            return (Boolean)ast_node->Bool.value;
         case ADD:
-            return (left+right);
+            temp_value = (left+right);
+            return temp_value;
         case SUB:
-            return (left-right);
+            temp_value = (left-right);
+            return temp_value;
         case MUL:
-            return (left*right);
+            temp_value = (left+right);
+            return temp_value;
         case DIV:
             return (left/right);
         case MOD:
             return ((int)left % (int)right);
         case U_MIN:
-            return -(eval_ast(head->Unary.factor));
+            return -(eval_ast(ast_node->Unary.factor));
         case U_PLUS:
-            return eval_ast(head->Unary.factor);
+            return eval_ast(ast_node->Unary.factor);
         case NOT:
-            return !(eval_ast(head->Unary.factor));
+            return !(eval_ast(ast_node->Unary.factor));
         case AND:
-            left = eval_ast(head->Binary.left);
+            left = eval_ast(ast_node->Binary.left);
             if(left) 
-                return eval_ast(head->Binary.right);
+                return eval_ast(ast_node->Binary.right);
             else 
                 return left;
         case OR:  
-            left = eval_ast(head->Binary.left);
+            left = eval_ast(ast_node->Binary.left);
             if(left)
                 return left;
             else 
-                return eval_ast(head->Binary.right);
+                return eval_ast(ast_node->Binary.right);
         case DEQ:
-            return (left == right);    
+            temp_value =  (left == right);
+            return temp_value;
         case GT:
             return (left > right);
         case LT:
@@ -112,30 +132,30 @@ long double eval_ast(AST_NODE *root){
         case NEQ:
             return (left != right);
         case ASSIGN:
-            #define value(head) head->Assign.value
-            if(value(head)!= NULL){
-                temp_value = eval_ast(value(head));
-                sym_update(head->sym_data->sym_table,head->Assign.id_name,temp_value);
+            #define value(ast_node) ast_node->Assign.value
+            if(value(ast_node)!= NULL){
+                temp_value = eval_ast(value(ast_node));
+                sym_update(get_cur_scope(s_ptr),ast_node->Assign.id_name,temp_value);
             }          
             return temp_value;
         case PRNT:
             #define print_node(ptr) ptr->Print.expr
 
-            if(BINARY_OR_UNARY(print_node(head))){
+            if(BINARY_OR_UNARY(print_node(ast_node))){
                 temp_ptr = malloc(sizeof(long double));
-                *temp_ptr = eval_ast(print_node(head));
+                *temp_ptr = eval_ast(print_node(ast_node));
                 print_value(NO,temp_ptr);
                 return temp_value;
-            }else if(print_node(head)->ast_type == STR){
-                #define str_node(head) print_node(head)->Str 
-                print_value(STR,print_node(head));
+            }else if(print_node(ast_node)->ast_type == STR){
+                #define str_node(ast_node) print_node(ast_node)->Str 
+                print_value(STR,print_node(ast_node));
             }
             #undef print_node
             return 1;
         case IF:
-            #define condition_node head->If.exp
-            #define true_node     head->If.left
-            #define false_node    head->If.right
+            #define condition_node ast_node->If.exp
+            #define true_node     ast_node->If.left
+            #define false_node    ast_node->If.right
             if(eval_ast(condition_node)){ 
                 if(true_node != NULL) 
                     return eval_ast(true_node);
@@ -148,10 +168,10 @@ long double eval_ast(AST_NODE *root){
             #undef false_node
             return 1;
         case FOR:
-            #define init_stmt head->For.init
-            #define cond_stmt head->For.cond
-            #define expr_stmt head->For.exp
-            #define statement head->For.stmts
+            #define init_stmt ast_node->For.init
+            #define cond_stmt ast_node->For.cond
+            #define expr_stmt ast_node->For.exp
+            #define statement ast_node->For.stmts
 
             if(init_stmt != NULL) eval_ast(init_stmt);
             if(cond_stmt != NULL){
@@ -177,8 +197,8 @@ long double eval_ast(AST_NODE *root){
             #undef statement
             return 0;
         case WHILE:
-            #define condition_node head->Binary.left
-            #define value_node     head->Binary.right
+            #define condition_node ast_node->Binary.left
+            #define value_node     ast_node->Binary.right
 
             while(eval_ast(condition_node)){
                 if(value_node != NULL && FLOW(flow)) {
@@ -196,20 +216,40 @@ long double eval_ast(AST_NODE *root){
             #undef condition_node
             #undef value_node 
             return 0;
+        case BLOCK:
+            scope_enter(s_ptr,ast_node->sym_table);
+            eval_ast(ast_node->Block.block);
+            scope_exit(s_ptr);
+            return 0;
+        case ID:
+            table = sym_fetch(get_cur_scope(s_ptr),ast_node->Id.name);
+            return table->entry->value;
         case FDEF:
             return 0;
         case FCALL:
-        #define arg_v(head) (head->Func_call.argv)
-        #define arg_c(head) (head->Func_call.argc)
-        #define param_v(head) (head->Func_call.callee->Func_def.f_params)
-        #define scope(head) (head->Func_call.callee->sym_data->sym_table)
-        #define body(head) (head->Func_call.callee->Func_def.f_body)
-        for(int i = 0;i<arg_c(head);i++){
-            temp_value = eval_ast(arg_v(head)[i]); // binding values to all local variables
-            sym_update(scope(head),param_v(head)[i],temp_value);
-        }
-        eval_ast(body(head));
-        return 1;
+          #define arg_v(ast_node) (ast_node->Func_call.argv)
+          #define arg_c(ast_node) (ast_node->Func_call.argc)
+          #define par_v(tab)  (tab->entry->node->Func_def.f_params)
+          #define fun_body(tab) (tab->entry->node->Func_def.f_body)
+          table = sym_fetch(get_cur_scope(s_ptr),ast_node->Func_call.f_name);
+          scope_enter(s_ptr,sym_create());
+          for(int i = 0;i<arg_c(ast_node);i++){
+              sym_entry(par_v(table)[i],eval_ast(arg_v(ast_node)[i]));
+          }            
+          temp_value = setjmp(j_stack.jmp_c[j_stack.top++].ret_state);
+          if(!is_return)
+              temp_value = eval_ast(fun_body(table));
+            
+          is_return = 0;
+          scope_exit(s_ptr);
+          return temp_value;
+        case RET:
+          if(ast_node->Ret.value != NULL){
+                temp_value = eval_ast(ast_node->Ret.value);
+          }
+          is_return = 1;
+          longjmp(j_stack.jmp_c[--j_stack.top].ret_state,temp_value);
+          return temp_value;
         case BRK:
             flow = BRK_FLOW;
             return 0;

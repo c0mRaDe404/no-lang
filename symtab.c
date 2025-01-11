@@ -33,8 +33,13 @@ size_t hash(char *string,size_t m_val){
 
 SYM_ENTRY *sym_update(SYM_TABLE *table,char *id,long double value){ 
     SYM_DATA *record = sym_fetch(table,id);
-    record->entry->value = value;
-    return record->entry;
+    if(record != NULL){
+        record->entry->value = value;
+        return record->entry;
+    }else{
+        fprintf(stderr,"Id '%s' is not defined\n",id);
+        return NULL;
+    }
 }
 
 SYM_ENTRY *sym_entry(char *id,long double value){
@@ -109,7 +114,7 @@ SYM_DATA *sym_fetch(SYM_TABLE *s,char *id){
                 table = table->parent;
             }else{
                 printf("line %d : Id '%s' is not defined\n",line,id);
-                exit(0);
+                return NULL;
             }
         }
         return mk_sym_data(table,entry);            

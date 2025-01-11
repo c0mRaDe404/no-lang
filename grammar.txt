@@ -5,6 +5,7 @@ block           ::= "{" (stmts)? "}" /* loops,conditions etc.. */
 stmts           ::= stmt stmts | stmt
 
 stmt            ::= exp ";"
+                  | func-def ";"
                   | declaration ";"
                   | assignment ";"
                   | "print" "(" exp ")" ";"
@@ -12,6 +13,16 @@ stmt            ::= exp ";"
                   | loop-stmt ";"
                   | break-stmt ";"
                   | cont-stmt ";"
+                  | return-stmt ";"
+                  | block //compound statement need to move somewhe
+
+func-def        ::= "fn" function 
+
+function        ::=  ID "(" params ")" "{" program "}"
+
+params          ::= (ID ("," ID)*)?
+
+return-stmt     ::= "return" expression? 
 
 if-stmt         ::= "if" conditional (block)? (else-stmt)?
 
@@ -26,7 +37,6 @@ while-stmt      ::= "while" conditional (block)?
 
 /*let x,y,z be int;*/
 
-let a,b,c = 10;
 
 declaration     ::= "let" ID ("," ID ("=" exp)?)* "="  exp  
 
@@ -34,7 +44,12 @@ expression      ::= assignment
 
 assignment      ::= logical_expr (("=") assignment)?
 
-/* assignment      ::= logical_expr ((("=") logical_expr)*)? */
+
+func-call       ::= logical_expr ("(" arguments ")")+
+
+arguments       ::= (expression ("," expression)*)?
+
+assignment      ::= logical_expr (("=") assignment)?
 
 logical_expr    ::= logic_term ("or" logic_term)*
 
@@ -51,7 +66,8 @@ Arithmetic_expr ::= term (("+" | "-") term)
 
 Arithmetic_term ::= factor ( ("*" | "/" | "%") factor)*
 
-unary           ::= ( "-" | "+" ) factor
+unary           ::= ( "-" | "+" ) factor 
+
 
 Arithmetic_
 factor          ::= NUM
@@ -59,3 +75,4 @@ factor          ::= NUM
                   |  unary
                   |  STRING
                   |  id
+                  |  func-call

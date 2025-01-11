@@ -37,6 +37,8 @@ int line = 1;
 "int"                                               {return INTEGER;}
 "float"                                             {return FLOAT;}
 "str"                                               {return STRING;}
+"fn"                                                {return FUNC_DEF;}
+"return"                                            {return RETURN; }
 "true"                                              {return TRUE_EXP;}
 "false"                                             {return FALSE_EXP;}
 "print"                                             {return PRINT;}
@@ -52,8 +54,8 @@ int line = 1;
 
 
 
-(\"|\')(.+?)([^\\n\t\"]+)(\"|\')                    {       return STRING;      }
-[a-zA-Z_][a-zA-Z_]*                                 {       return ID;          }
+(\"|\')(.+?)(\"|\')                                 {       return STRING;      }
+[a-zA-Z_][a-zA-Z_]*                                 {       return IDENTIFIER;          }
 (0|[1-9][0-9]*)(\.[0-9]+)                           {       return FLOAT;         }
 (0|[1-9][0-9]*)                                     {       return INTEGER;     }
 [ \t]                                               {       ;                   }

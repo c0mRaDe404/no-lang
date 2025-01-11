@@ -36,6 +36,5 @@ int main(int argc,char **argv){
     #ifdef DEBUG
     printf("%0.15Lf\n",value);
     #endif
-
     return 0;
 }

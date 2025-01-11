@@ -15,9 +15,9 @@
 
 typedef enum {
     EOS, NUM, INTEGER, FLOAT, PLUS,
-    MINUS, MULTIPLY, DIVIDE, MODULO,
+    MINUS, MULTIPLY, DIVIDE, MODULO,RETURN,
     L_PAREN, R_PAREN, EQ, COLON, SEMI_COLON,
-    AND_OP, OR_OP, NOT_OP, ID, LET, PRINT,
+    AND_OP, OR_OP, NOT_OP, IDENTIFIER, LET, PRINT,
     DOUBLE_EQ, G_THAN, L_THAN, L_THAN_EQ,
     G_THAN_EQ, NOT_EQ, TRUE_EXP, FALSE_EXP,
     STRING, IF_KWD, ELSE_KWD, OPEN_CURLY,
@@ -29,10 +29,10 @@ typedef enum {
 
 typedef enum{
     STMT=1, ADD  ,SUB,MUL, DIV,
-    MOD , U_PLUS, U_MIN, ASSIGN,
+    MOD , U_PLUS, U_MIN, ASSIGN,BLOCK,
     NO, INT, FLT, PRNT, STR, DEQ,
-    GT, LT, LEQ, GEQ, NEQ, AND, 
-    OR, NOT, IF, ELSE, FOR, WHILE,
+    GT, LT, LEQ, GEQ, NEQ, AND,ID,
+    OR, NOT, IF, ELSE, FOR, WHILE,RET,
     BRK, CONT, PR_INC, PR_DEC, PO_INC,
     PO_DEC, TRUE, FALSE, LIST,FDEF,FCALL
 }AST_TYPE;
@@ -164,7 +164,7 @@ SYM_ENTRY         *sym_update  (SYM_TABLE*,char *,long double);
 typedef struct AST_NODE{
     
     AST_TYPE ast_type;
-    SYM_DATA *sym_data;
+    SYM_TABLE *sym_table;
 
     union{
 
@@ -183,7 +183,15 @@ typedef struct AST_NODE{
             char *id_name; // identifier's name
             struct AST_NODE *value;  // value ast_node
         }Assign;
-        
+
+        struct{
+            char *name;
+            DATA_TYPE type;
+        }Id;
+
+        struct{
+            struct AST_NODE *block;
+        }Block;
         struct{
             char *f_name;
             char **f_params;
@@ -192,12 +200,15 @@ typedef struct AST_NODE{
         }Func_def;
 
         struct{
+            char *f_name;
             struct AST_NODE *callee;
             struct AST_NODE **argv;
             size_t argc;
         }Func_call;
 
-
+        struct{
+            struct AST_NODE *value;
+        }Ret;
 
         struct {
             struct AST_NODE *exp;
@@ -270,7 +281,7 @@ AST_NODE *mk_num_node      (AST_TYPE ,long double,void *);
 
 AST_NODE *mk_unary_node    (AST_TYPE,AST_NODE *);
 
-AST_NODE *mk_assign_node   (AST_TYPE,char *,AST_NODE *,SYM_TABLE *);
+AST_NODE *mk_assign_node   (AST_TYPE,char *,AST_NODE *);
 
 AST_NODE *mk_print_node    (AST_TYPE,AST_NODE *);
 
@@ -280,16 +291,19 @@ AST_NODE *mk_if_node       (AST_TYPE,AST_NODE*,AST_NODE *,AST_NODE *);
 
 AST_NODE *mk_for_node      (AST_TYPE,AST_NODE *,AST_NODE *,AST_NODE *,AST_NODE *);
 
+
+AST_NODE *mk_id_node(AST_TYPE,char *);
 AST_NODE *mk_bool_node     (AST_TYPE ,Boolean );
 
 AST_NODE *mk_float_node    (AST_TYPE type,long double num,long double *ref);
 
 AST_NODE *mk_int_node      (AST_TYPE type,int num,int *ref);
 
-AST_NODE *mk_func_call_node(AST_TYPE,AST_NODE*,AST_NODE **,size_t);
-AST_NODE *mk_func_def_node(AST_TYPE,char*,char**,size_t,AST_NODE*,SYM_TABLE*);
+AST_NODE *mk_func_call_node(AST_TYPE,char*,AST_NODE **,size_t);
+AST_NODE *mk_func_def_node(AST_TYPE,char*,char**,size_t,AST_NODE*);
+AST_NODE *mk_return_node(AST_TYPE,AST_NODE *);
 AST_NODE *mk_flow_node     (AST_TYPE);
-
+AST_NODE *mk_block_node(AST_TYPE,AST_NODE *,SYM_TABLE *);
 int       check_binary     (AST_TYPE);
 int       check_unary      (AST_TYPE);
 
@@ -315,9 +329,10 @@ void    *Arithmetic_expression    (void);
 void    *term                     (void);
 void    *factor                   (void);
 void    *parse_func_def           (void);
-void    *parse_func_call                (void);
+void    *parse_func_call          (void);
+void    *parse_return_stmt        (void);
 void    *check_assign             (void);
-
+void    *statement_list           (void);
 
 
 /* interpreter ( tree walker ) */

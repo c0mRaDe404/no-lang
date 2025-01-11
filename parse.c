@@ -47,6 +47,8 @@ AST_TYPE token_to_ast(TOKEN_TYPE type){
         case STRING    : return STR;
         case FUNC_DEF  : return FDEF;
         case FUNC_CALL : return FCALL;
+        case RETURN    : return RET;
+        case IDENTIFIER: return ID;
         default        : return 0;
     }
 }
@@ -74,7 +76,7 @@ int is_sync_point(TOKEN_TYPE token){
 /* common syntax errors and error messages */
 char *error_msg(TOKEN_TYPE e_tok){
     switch(e_tok){
-        case ID: return "identifier";
+        case IDENTIFIER: return "identifier";
         case OPEN_CURLY : return "{";
         case CLOSE_CURLY : return "}";
         case L_PAREN : return "(";
@@ -191,42 +193,49 @@ void *parse_while_stmt(void){
 
 
 
-/* program  ::=  stmt stmt* */
+
 void *program(void){
     
-    AST_NODE *n1,*n2;
+    AST_NODE *program_node;
     
     /* sets the checkpoint for panic mode recovery */
     if(setjmp(panic_recovery_state) != PANIC_MODE){
-        n1 = statement();
+        program_node = statement_list();
     }
+    return program_node;
+}
+
+void *block(void){
+
+    AST_NODE *block_node = NULL;
+    if(cur_token == OPEN_CURLY){
+        scope_enter(s_ptr,sym_create());
+        match(OPEN_CURLY);
+        if(cur_token != CLOSE_CURLY) 
+                block_node = statement_list(); 
+        match(CLOSE_CURLY);
+        block_node = mk_block_node(BLOCK,block_node,get_cur_scope(s_ptr));
+        scope_exit(s_ptr);
+        return block_node;
+    }else {
+        return statement();
+    } 
+    return block_node;
+}
+
+
+void *statement_list(void){
+    
+    AST_NODE *n1,*n2;
+    n1 = statement();
 
     while(!END(cur_token)){
        n1 = mk_binary_node(STMT,n1,statement());
     }
     return n1;
+
 }
 
-
-
-
-/* block ::= '{' stmt stmts* '}' */
-void *block(void){
-
-    AST_NODE *node = NULL;
-    if(cur_token == OPEN_CURLY){
-        scope_enter(s_ptr,sym_create());
-        match(OPEN_CURLY);
-        if(cur_token != CLOSE_CURLY) 
-                node = program(); /* reusing program ::= stmt stmt* */
-        match(CLOSE_CURLY);
-        scope_exit(s_ptr);
-        return node;
-    }else {
-        return statement();
-    } 
-    return node;
-}
 
 
 void *parse_declaration_stmt(void){
@@ -235,6 +244,8 @@ void *parse_declaration_stmt(void){
     match(SEMI_COLON);
     return n1;
 }
+
+
 void *parse_flow_stmt(void){
     AST_TYPE type;
     if(loop_counter == 0){
@@ -274,6 +285,8 @@ void *statement(void){
             return block();
         case FUNC_DEF:
             return parse_func_def();
+        case RETURN:
+            return parse_return_stmt();
         default:
             n1 = expression();
             match(SEMI_COLON);
@@ -291,10 +304,10 @@ void *declaration(void){
 
     match(LET);
     id = strndup(yytext,yyleng);
-    match(ID);
+    match(IDENTIFIER);
     sym_entry(id,0);
     match(EQ);
-    return mk_assign_node(ASSIGN,id,expression(),get_cur_scope(s_ptr));
+    return mk_assign_node(ASSIGN,id,expression());
 }
 
 
@@ -308,7 +321,7 @@ void *assignment(void){
         if (ASSIGN(cur_token)){
             match(EQ);
             s_tab = sym_fetch(get_cur_scope(s_ptr),id); 
-            n1 = mk_assign_node(ASSIGN,id,assignment(),s_tab->sym_table);
+            n1 = mk_assign_node(ASSIGN,id,assignment());
         }
         return n1;
 }
@@ -486,15 +499,16 @@ void *factor(void){
             match(MINUS);
             node = expression();
             return mk_unary_node(U_MIN,node);
-        case ID:
-            match(ID);   //need to make num node;
+        case IDENTIFIER:
+            match(IDENTIFIER);   //need to make num node;
             if(cur_token == EQ) {
                 return NULL;
             }else if(cur_token == L_PAREN){
                 return parse_func_call();
             }
-            s_tab = sym_fetch(get_cur_scope(s_ptr),prev_token);
-            node = mk_num_node(NO,s_tab->entry->value,&s_tab->entry->value);
+            //if(!sym_check(get_cur_scope(s_ptr,prev_token,hash(prev_token,SYM_TABLE_S))));
+            sym_fetch(get_cur_scope(s_ptr),prev_token);
+            node = mk_id_node(token_to_ast(IDENTIFIER),prev_token);
             return node;
         case TRUE_EXP:
             type = cur_token;
@@ -521,22 +535,23 @@ void *parse_func_def(void){
     #define strcopy(id,str,n) (id = strndup(str,n))
     
     SYM_TABLE *f_scope;
+    SYM_ENTRY *entry;
     char *f_name;
     char **f_params;
+    AST_NODE *f_body,*func_node;
     size_t param_count = 0;
-    AST_NODE *f_body;
-    AST_NODE *func_node;
+
     f_params = malloc(sizeof(char*)*10);
     match(FUNC_DEF);
-    match(ID);
+    match(IDENTIFIER);
     f_name = prev_token;
-    SYM_ENTRY *entry = sym_entry(f_name,0);
-    f_scope = scope_enter(s_ptr,sym_create());
+    entry = sym_entry(f_name,0); // function name entry in global scope
+    scope_enter(s_ptr,sym_create());
     match(L_PAREN);
     while(cur_token != R_PAREN){
-         match(ID);
-         f_params[param_count++] = prev_token;
+         match(IDENTIFIER);
          sym_entry(prev_token,0);
+         f_params[param_count++] = prev_token;
          if(cur_token == COMMA_OP){
              match(COMMA_OP);
          }
@@ -545,40 +560,46 @@ void *parse_func_def(void){
     match(OPEN_CURLY);
     f_body = program();
     match(CLOSE_CURLY);
-    scope_exit(s_ptr);    
-
-    func_node =  mk_func_def_node(token_to_ast(FUNC_DEF),f_name,f_params,param_count,f_body,f_scope);
+    scope_exit(s_ptr);
+    func_node =  mk_func_def_node(token_to_ast(FUNC_DEF),f_name,f_params,param_count,f_body);
     entry->node = func_node;
-
     return func_node;
 }
 
 
 void *parse_func_call(void){
     
-    #define func_node(fun) (fun->entry->node->Func_def)
-    char *func_name = prev_token;
-    SYM_DATA *table = sym_fetch(get_cur_scope(s_ptr),func_name);
-    size_t argc = 0;
-    AST_NODE **argv = malloc(sizeof(AST_NODE*)*func_node(table).par_count);
+    #define MAX_FUN_ARGS 128
+    char *func_name;
+    size_t argc;
+    AST_NODE **argv;
 
+    if(!sym_fetch(get_cur_scope(s_ptr),prev_token)){
+        fprintf(stderr,"Function undefined : <fn %s>\n",prev_token);    }
+    
+    func_name = prev_token;
+    argc = 0;
+    argv = malloc(sizeof(char*)*MAX_FUN_ARGS);
     match(L_PAREN);
-    while(cur_token != R_PAREN){
-        
+
+    while(cur_token != R_PAREN){ 
         argv[argc++] = expression(); 
         if(cur_token == COMMA_OP)
             match(COMMA_OP);
     }
     match(R_PAREN);
+    return mk_func_call_node(token_to_ast(FUNC_CALL),func_name,argv,argc);
 
-    if(argc > func_node(table).par_count){
-        fprintf(stdout,"arguments exceeded expected %zu but got %zu\n",func_node(table).par_count,argc);
-        return NULL;
-    }else if(argc < func_node(table).par_count){
-        fprintf(stdout,"expected arguments %zu but got %zu\n",func_node(table).par_count,argc);
-        return NULL;
+}
+
+void *parse_return_stmt(void){
+    
+    AST_NODE *value;
+    match(RETURN);
+
+    if(cur_token != SEMI_COLON){
+        value = expression();
     }
-
-    return mk_func_call_node(token_to_ast(FUNC_CALL),table->entry->node,argv,argc);
-
+    match(SEMI_COLON);
+    return mk_return_node(token_to_ast(RETURN),value);
 }
